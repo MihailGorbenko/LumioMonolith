@@ -51,7 +51,11 @@ void AppController::begin() {
 
 	loadState();
 	applyMasterBrightness();
-	DBG_PRINTF("[AppController] Loaded animation index: %d, brightness: %d\n", currentIndex, brightStep);
+	if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
+		DBG_PRINTF("[AppController] Loaded animation index: %d (%s), brightness: %d\n", currentIndex, animations[currentIndex]->getName(), brightStep);
+	} else {
+		DBG_PRINTF("[AppController] Loaded animation index: %d, brightness: %d\n", currentIndex, brightStep);
+	}
 
 	// sync encoder to current mode/value so acceleration affects controller logic
 	switch (mode) {
@@ -69,7 +73,7 @@ void AppController::begin() {
 			encoder->setValue(brightStep);
 			break;
 		case MODE_COLOR:
-			encoder->setBoundaries(0, APP_STEPS - 1, false);
+			encoder->setBoundaries(0, APP_COLOR_STEPS - 1, false);
 			encoder->setValue(colorStep);
 			break;
 		case MODE_POWEROFF:
@@ -115,18 +119,20 @@ void AppController::update() {
 			matrix->clear();
 			matrix->show();
 		} else {
-			// only show power-off animation after a minimal hold threshold
+			// Show full-lit frame immediately, then extinguish after minimal threshold
+			int prog;
 			if (held >= APP_POWEROFF_MIN_ANIM_MS) {
-				int prog = 255 - (int)((uint32_t)held * 255 / APP_POWEROFF_HOLD_MS);
+				prog = 255 - (int)((uint32_t)held * 255 / APP_POWEROFF_HOLD_MS);
 				if (prog < 0) prog = 0;
-				powerOffAnim.setProgress((uint8_t)prog);
-
-				// ensure it's visible while holding
-				matrix->clear();
-				powerOffAnim.render();
-				matrix->show();
+			} else {
+				prog = 255; // all segments ON while initial hold
 			}
-			// otherwise ignore short presses (no flash)
+			powerOffAnim.setProgress((uint8_t)prog);
+
+			// ensure it's visible while holding
+			matrix->clear();
+			powerOffAnim.render();
+			matrix->show();
 		}
 		return; // while holding, ignore other rendering
 	}
@@ -290,7 +296,7 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 				encoder->setValue(brightStep);
 				break;
 			case MODE_COLOR:
-				encoder->setBoundaries(0, APP_STEPS - 1, false);
+				encoder->setBoundaries(0, APP_COLOR_STEPS - 1, false);
 				encoder->setValue(colorStep);
 				break;
 			case MODE_POWEROFF:
@@ -314,7 +320,7 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 					matrix->show();
 
 					currentIndex = newIndex;
-					DBG_PRINTF("[AppController] Animation changed to: %d\n", currentIndex);
+					DBG_PRINTF("[AppController] Animation changed to: %d (%s)\n", currentIndex, animations[currentIndex]->getName());
 					char key[32];
 					snprintf(key, sizeof(key), "anim_%d", currentIndex);
 					animations[currentIndex]->loadFromNVS(key);
@@ -332,14 +338,14 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 				break;
 
 			case MODE_COLOR:
-				colorStep = constrain(value, 0, APP_STEPS - 1);
+				colorStep = constrain(value, 0, APP_COLOR_STEPS - 1);
 				if (!matrix || animations.empty()) break;
 				if (currentIndex < 0 || currentIndex >= (int)animations.size()) break;
 				{
-					int delta = (colorStep * 256) / APP_STEPS;
+					int delta = (colorStep * 256) / APP_COLOR_STEPS;
 					if (delta > 255) delta = 255;  // clamp to valid hue range
 					animations[currentIndex]->setColorHSV((uint8_t)delta, 255, 255);
-					DBG_PRINTF("[AppController] Color (Hue): %d (%d/%d)\n", delta, colorStep, APP_STEPS);
+					DBG_PRINTF("[AppController] Color (Hue): %d (%d/%d)\n", delta, colorStep, APP_COLOR_STEPS);
 				}
 				break;
 

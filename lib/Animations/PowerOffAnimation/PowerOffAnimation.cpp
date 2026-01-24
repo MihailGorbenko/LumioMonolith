@@ -39,29 +39,28 @@ void PowerOffAnimation::render() {
 	if (w <= 0) w = 1;
 	if (h <= 0) h = 1;
 
-	// Затухание сегментов сверху вниз:
-	// при удержании прогресс уменьшается 255 -> 0,
-	// полностью гасим строки сверху, последние остаются снизу.
-	uint32_t prod = (uint32_t)progress * (uint32_t)h; // 0..(h*255)
-	int filledRows = (int)(prod / 255);               // полные снизу
-	int rem = (int)(prod % 255);                      // частично заполненная строка снизу
+	// С учётом XY-мэппинга (логический верх = физический низ),
+	// чтобы физически гасить сверху вниз, необходимо логически гасить снизу вверх.
+	// Инвертируем прогресс: 255 (начало удержания) = все горят;
+	// по мере удержания гасим сверху вниз.
+	uint32_t ext = (uint32_t)(255 - progress);
+	uint32_t prod = ext * (uint32_t)h;               // 0..(h*255)
+	int offRows = (int)(prod / 255);                 // полностью погашенные сверху (логически)
+	int rem = (int)(prod % 255);                     // доля текущей гасимой строки
 
 	for (int y = 0; y < h; ++y) {
-		uint8_t rowV = 0;
-		int bottomStart = h - filledRows; // индекс первой полной снизу
-		if (y >= bottomStart) {
-			rowV = val; // полная яркость у нижних строк
-		} else if (rem > 0 && y == (bottomStart - 1)) {
-			// частично заполненная строка над полными
-			rowV = (uint8_t)((uint32_t)rem * (uint32_t)val / 255U);
+		uint8_t rowV;
+		if (y < offRows) {
+			rowV = 0; // верхние (логически) уже погасли → физически верхние
+		} else if (y == offRows) {
+			// текущая строка гаснет плавно
+			rowV = (uint8_t)((uint32_t)(255 - rem) * (uint32_t)val / 255U);
 		} else {
-			rowV = 0; // верхние уже погасли
+			rowV = val; // остальные ещё горят
 		}
 
 		for (int x = 0; x < w; ++x) {
-			if (rowV > 0) {
-				matrix->setPixelHSV(x, y, hue, sat, rowV);
-			}
+			if (rowV > 0) matrix->setPixelHSV(x, y, hue, sat, rowV);
 		}
 	}
 

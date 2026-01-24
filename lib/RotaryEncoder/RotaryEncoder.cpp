@@ -137,7 +137,8 @@ void RotaryEncoder::update() {
             if (_accum > 127) _accum = 127;  // ~31 full steps, safe boundary
             else if (_accum < -127) _accum = -127;
 
-            int fullSteps = _accum / 4;
+            // Treat half-step encoders as one full step per detent
+            int fullSteps = _accum / 2;
             // Ограничиваем, но плавнее (не режим резкий скачок)
             if (fullSteps > (int)MAX_FULL_STEPS_PER_UPDATE) fullSteps = MAX_FULL_STEPS_PER_UPDATE;
             else if (fullSteps < -(int)MAX_FULL_STEPS_PER_UPDATE) fullSteps = -((int)MAX_FULL_STEPS_PER_UPDATE);
@@ -200,7 +201,7 @@ void RotaryEncoder::update() {
                     notify((fullSteps > 0) ? INCREMENT : DECREMENT, _value);
                 }
 
-                _accum -= fullSteps * 4; // keep remainder (-3..3)
+                _accum -= fullSteps * 2; // keep remainder (-1..1)
                 _lastStepMillis = now;
             }
         }

@@ -10,7 +10,7 @@
 
 // DEBUG MODE - enable serial output for hardware testing
 #ifndef DEBUG_SERIAL
-#define DEBUG_SERIAL 0
+#define DEBUG_SERIAL 1
 #endif
 
 // настройка FPS для обновления анимации (можно переопределить в проекте)
@@ -20,6 +20,10 @@
 // число шагов для яркости / цвета
 #ifndef APP_STEPS
 #define APP_STEPS 20
+#endif
+// число шагов для настройки цвета (мелкий шаг)
+#ifndef APP_COLOR_STEPS
+#define APP_COLOR_STEPS 60
 #endif
 // длительность удержания для выключения (мс)
 #ifndef APP_POWEROFF_HOLD_MS
