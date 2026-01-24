@@ -82,8 +82,9 @@ void setup() {
 	app.addAnimation(&pulseWave);
 	app.addAnimation(&neonGrid);
 	app.addAnimation(&galacticWarp);
-	app.addAnimation(&flameColumns);
 	app.addAnimation(&equalizerBars);
+	app.addAnimation(&flameColumns);
+	
 	
 
 	// start controller (attaches to rotary)

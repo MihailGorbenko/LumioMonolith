@@ -247,7 +247,7 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 						encoder->setValue(brightStep);
 						break;
 					case MODE_COLOR:
-						encoder->setBoundaries(0, APP_STEPS - 1, false);
+						encoder->setBoundaries(0, APP_COLOR_STEPS - 1, false);
 						encoder->setValue(colorStep);
 						break;
 					case MODE_POWEROFF:
