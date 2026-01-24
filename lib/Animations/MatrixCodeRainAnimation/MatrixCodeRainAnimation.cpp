@@ -3,7 +3,7 @@
 
 MatrixCodeRainAnimation::MatrixCodeRainAnimation(LedMatrix& m)
         : AnimationBase(m, MATRIX_RAIN_DEFAULT_HUE, MATRIX_RAIN_DEFAULT_SAT, MATRIX_RAIN_DEFAULT_VAL),
-            tailLen(1), heads(nullptr), counter(nullptr), speeds(nullptr), numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(50) {
+            tailLen(1), numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(50) {
     int w = m.getWidth();
     int h = m.getHeight();
     // обычная логика: колонки = ширина, строки = высота
@@ -12,9 +12,9 @@ MatrixCodeRainAnimation::MatrixCodeRainAnimation(LedMatrix& m)
     // хвост ограничиваем высотой (движение по Y)
     tailLen = (uint8_t)min<uint8_t>(tailLen, (numRows > 0 ? (numRows - 1) : 1));
     // выделяем память для массивов по количеству колонок (15)
-    heads = new int[numCols];
-    counter = new uint8_t[numCols];
-    speeds = new uint8_t[numCols];
+    heads.resize(numCols);
+    counter.resize(numCols);
+    speeds.resize(numCols);
     // головы по каждому столбцу X (позиции вдоль сегмента) с разными начальными позициями и скоростями
         for (int x = 0; x < numCols; ++x) {
         heads[x] = random8(0, (numRows > 0 ? numRows : 1));
@@ -26,18 +26,7 @@ MatrixCodeRainAnimation::MatrixCodeRainAnimation(LedMatrix& m)
 }
 
 MatrixCodeRainAnimation::~MatrixCodeRainAnimation() {
-    if (heads) {
-        delete[] heads;
-        heads = nullptr;
-    }
-    if (counter) {
-        delete[] counter;
-        counter = nullptr;
-    }
-    if (speeds) {
-        delete[] speeds;
-        speeds = nullptr;
-    }
+    // vectors automatically cleaned up
 }
 
 void MatrixCodeRainAnimation::setTailLen(uint8_t len) {

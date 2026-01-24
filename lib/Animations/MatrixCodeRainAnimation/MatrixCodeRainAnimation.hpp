@@ -1,6 +1,7 @@
 #ifndef MATRIX_CODE_RAIN_ANIMATION_HPP
 #define MATRIX_CODE_RAIN_ANIMATION_HPP
 #include <Arduino.h>
+#include <vector>
 #include "../../LedMatrix/LedMatrix.hpp"
 #include "../../Animation/Animation.hpp"
 
@@ -22,9 +23,9 @@ public:
     void render() override;
 private:
     uint8_t tailLen;  // trail length in rows
-    int* heads; // per-column head position (y)
-    uint8_t* counter; // per-column counter for independent timing
-    uint8_t* speeds; // per-column step speed (ticks between moves)
+    std::vector<int> heads; // per-column head position (y)
+    std::vector<uint8_t> counter; // per-column counter for independent timing
+    std::vector<uint8_t> speeds; // per-column step speed (ticks between moves)
     int numCols; // number of columns (width)
     int numRows; // number of rows (height)
     uint32_t nextStepMs; // next step timestamp
