@@ -8,7 +8,7 @@ SparkleWaveAnimation::SparkleWaveAnimation(LedMatrix& m)
 
 void SparkleWaveAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
 	// SparkleWave: hue drifts, but base hue is the offset
-	AnimationBase::setColorHSV(h, s, v);
+	// base implementation is sufficient
 }
 
 void SparkleWaveAnimation::render() {
@@ -20,7 +20,10 @@ void SparkleWaveAnimation::render() {
 	if (w <= 0) w = 1;
 	if (hgt <= 0) hgt = 1;
 
-	uint16_t t = (uint16_t)(millis() / 5);
+	uint32_t now = millis();
+	uint32_t t32 = now / 5U;
+	uint8_t t = (uint8_t)(t32 & 0xFF);
+
 	for (int x = 0; x < w; ++x) {
 		uint8_t wave = sin8((uint8_t)(t + x * 10));
 		// allow full brightness at wave peaks
@@ -28,15 +31,13 @@ void SparkleWaveAnimation::render() {
 		uint8_t hOut = (uint8_t)(hue + (wave >> 2));
 
 		// Column-level sparkle decision (removes per-pixel random())
-		uint8_t sparkleBoost = ((((uint8_t)((millis() >> 3) + x * 73)) & 0xFF) < sparkleChance) ? 120 : 0;
+		uint8_t sparkleBoost = ((((uint8_t)((now >> 3) + x * 73)) & 0xFF) < sparkleChance) ? 120 : 0;
 
 		for (int y = 0; y < hgt; ++y) {
 			// Add slight vertical variation
 			uint8_t vOut = (hgt >= 2) ? ((y == 0) ? vWave : scale8(vWave, 200)) : vWave;
-			// Occasional sparkle boost without RNG per pixel
-			if (sparkleBoost) {
-				vOut = qadd8(vOut, sparkleBoost);
-			}
+			// Occasional sparkle boost without per-pixel RNG
+			if (sparkleBoost) vOut = qadd8(vOut, sparkleBoost);
 			matrix->setPixelHSV(x, y, hOut, sat, vOut);
 		}
 	}
