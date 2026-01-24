@@ -2,13 +2,8 @@
 #include <FastLED.h>
 
 SparkleWaveAnimation::SparkleWaveAnimation(LedMatrix& m)
-	: AnimationBase(m, SPARKLEWAVE_DEFAULT_HUE, SPARKLEWAVE_DEFAULT_SAT, SPARKLEWAVE_DEFAULT_VAL),
-	  sparkleChance(28) {
-}
-
-void SparkleWaveAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
-	// SparkleWave: hue drifts, but base hue is the offset
-	// base implementation is sufficient
+		: AnimationBase(m, SPARKLEWAVE_DEFAULT_HUE, SPARKLEWAVE_DEFAULT_SAT, SPARKLEWAVE_DEFAULT_VAL),
+			sparkleChance(28) {
 }
 
 void SparkleWaveAnimation::render() {
