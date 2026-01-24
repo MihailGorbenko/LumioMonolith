@@ -17,8 +17,9 @@
 class GalacticWarpAnimation : public AnimationBase {
 public:
 	explicit GalacticWarpAnimation(LedMatrix& m);
-	void setColorHSV(uint8_t h, uint8_t s, uint8_t v) override;
 	void render() override;
+private:
+    static const int MAX_W = MATRIX_WIDTH;
 };
 
 #endif // GALACTIC_WARP_ANIMATION_HPP

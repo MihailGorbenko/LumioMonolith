@@ -9,7 +9,6 @@
 #include "../lib/Animations/PulseWaveAnimation/PulseWaveAnimation.hpp"
 #include "../lib/Animations/NeonGridAnimation/NeonGridAnimation.hpp"
 #include "../lib/Animations/GalacticWarpAnimation/GalacticWarpAnimation.hpp"
-#include "../lib/Animations/FluoroLampAnimation/FluoroLampAnimation.hpp"
 #include "../lib/Animations/ColorStaticAnimation/ColorStaticAnimation.hpp"
 #include "../lib/Animations/SegmentRunnerAnimation/SegmentRunnerAnimation.hpp"
 #include "../lib/Animations/CenterPulseAnimation/CenterPulseAnimation.hpp"
@@ -30,7 +29,6 @@ PulseWaveAnimation pulseWave(matrix);
 // MatrixRainAnimation removed
 NeonGridAnimation neonGrid(matrix);
 GalacticWarpAnimation galacticWarp(matrix);
-FluoroLampAnimation fluoro(matrix);
 ColorStaticAnimation colorStatic(matrix);
 SegmentRunnerAnimation segmentRunner(matrix);
 CenterPulseAnimation centerPulse(matrix);
@@ -68,7 +66,6 @@ void setup() {
 	codeRain.setName("Matrix Code Rain");
 	neonGrid.setName("Neon Grid");
 	galacticWarp.setName("Galactic Warp");
-	fluoro.setName("Fluoro Lamp");
 	colorStatic.setName("Color Static");
 	flameColumns.setName("Flame Columns");
 	equalizerBars.setName("Equalizer Bars");
@@ -85,7 +82,6 @@ void setup() {
 	app.addAnimation(&pulseWave);
 	app.addAnimation(&neonGrid);
 	app.addAnimation(&galacticWarp);
-	app.addAnimation(&fluoro);
 	app.addAnimation(&flameColumns);
 	app.addAnimation(&equalizerBars);
 	
