@@ -76,6 +76,7 @@ void setup() {
 	equalizerBars.setName("Equalizer Bars");
 
 	// register animations
+	app.addAnimation(&codeRain);
 	app.addAnimation(&stars);
 	app.addAnimation(&rainbow);
 	app.addAnimation(&segmentRunner);
@@ -84,7 +85,6 @@ void setup() {
 	app.addAnimation(&sparkleWave);
 	app.addAnimation(&pulseWave);
 	app.addAnimation(&matrixRain);
-	app.addAnimation(&codeRain);
 	app.addAnimation(&neonGrid);
 	app.addAnimation(&galacticWarp);
 	app.addAnimation(&fluoro);
