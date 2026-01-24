@@ -16,8 +16,6 @@ void PowerOnAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
 void PowerOnAnimation::render() {
     if (!matrix) return;
     matrix->clear();
-        if (!matrix) return;
-        matrix->clear();
 
         int w = matrix->width();
         int h = matrix->height();
@@ -27,7 +25,7 @@ void PowerOnAnimation::render() {
         // Поочерёдно загорающиеся синие сегменты (строки) снизу вверх, без хвоста
         // progress 0..255 -> число полностью зажжённых нижних строк
         uint32_t prod = (uint32_t)progress * (uint32_t)h; // 0..(h*255)
-        int litRows = (int)(prod / 255);                  // полностью зажжённые снизу (логически)
+        int litRows = (int)(prod / 255U);                  // полностью зажжённые снизу (логически)
 
         for (int y = 0; y < h; ++y) {
             // логический индекс снизу: yBottom = (h-1) - y
@@ -40,6 +38,4 @@ void PowerOnAnimation::render() {
         }
 
         matrix->show();
-
-    matrix->show();
 }
