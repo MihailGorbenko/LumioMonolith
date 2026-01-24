@@ -18,7 +18,6 @@ class SegmentRunnerAnimation : public AnimationBase {
 public:
     explicit SegmentRunnerAnimation(LedMatrix& m);
 
-    void setColorHSV(uint8_t h, uint8_t s, uint8_t v) override;
     void setStepPeriodMs(uint16_t ms);
     void render() override;
 

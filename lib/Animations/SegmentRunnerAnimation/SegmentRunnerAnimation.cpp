@@ -4,10 +4,6 @@ SegmentRunnerAnimation::SegmentRunnerAnimation(LedMatrix& m)
     : AnimationBase(m, SEGMENTRUNNER_DEFAULT_HUE, SEGMENTRUNNER_DEFAULT_SAT, SEGMENTRUNNER_DEFAULT_VAL),
       stepPeriodMs(130) {}
 
-void SegmentRunnerAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
-    AnimationBase::setColorHSV(h, s, v);
-}
-
 void SegmentRunnerAnimation::setStepPeriodMs(uint16_t ms) {
     if (ms == 0) ms = 1;
     stepPeriodMs = ms;
