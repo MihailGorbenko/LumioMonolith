@@ -2,12 +2,6 @@
 
 NeonGridAnimation::NeonGridAnimation(LedMatrix& m)
 	: AnimationBase(m, NEONGRID_DEFAULT_HUE, NEONGRID_DEFAULT_SAT, NEONGRID_DEFAULT_VAL) {
-	memset(gridPulse, 0, sizeof(gridPulse));
-}
-
-void NeonGridAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
-	// Neon grid: cyan/magenta/white retro style
-	AnimationBase::setColorHSV(h, s, v);
 }
 
 void NeonGridAnimation::render() {
@@ -20,27 +14,29 @@ void NeonGridAnimation::render() {
 	if (hgt <= 0) hgt = 1;
 	w = min(w, MAX_W);
 
-	uint16_t t = (uint16_t)(millis() / 8);
+	uint32_t now = millis();
+	uint32_t t32 = now / 8U;
+	uint8_t t = (uint8_t)(t32 & 0xFF);
 
-	// Horizontal grid lines (constant)
+	// Horizontal grid lines (base color per row)
 	for (int x = 0; x < w; ++x) {
-		uint8_t baseIntensity = 255; // allow full brightness
 		for (int y = 0; y < hgt; ++y) {
-			uint8_t vOut = scale8(val, baseIntensity);
+			uint8_t vOut = val; // base full brightness
 			uint8_t hOut = (uint8_t)(hue + (y * 64));  // hue per row
 			matrix->setPixelHSV(x, y, hOut, sat, vOut);
 		}
 	}
 
-	// Vertical pulse "grid nodes" (moving wave)
+	// Vertical pulse "grid nodes" (moving wave) - actually modulate brightness up to val
 	for (int x = 0; x < w; ++x) {
 		uint8_t pulseWave = sin8((uint8_t)(t + x * 6));
-		uint8_t intensity = scale8(pulseWave, val);
+		// base is a bit dimmer so pulse is visible; then clamp to val
+		uint8_t base = scale8(val, 200); // ~78% of val
+		uint8_t add = scale8(val, pulseWave); // pulse contribution
+		uint8_t vOut = min((uint8_t)val, qadd8(base, add));
 
 		for (int y = 0; y < hgt; ++y) {
-			uint8_t hOut = (uint8_t)(hue + intensity / 2);
-			uint8_t vOut = qadd8(scale8(val, 255), scale8(val, scale8(pulseWave, 255)));
-			vOut = min(vOut, val);
+			uint8_t hOut = (uint8_t)(hue + (vOut >> 3));
 			matrix->setPixelHSV(x, y, hOut, sat, vOut);
 		}
 	}

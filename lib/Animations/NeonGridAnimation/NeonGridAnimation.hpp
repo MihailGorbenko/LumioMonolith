@@ -17,12 +17,11 @@
 class NeonGridAnimation : public AnimationBase {
 public:
 	explicit NeonGridAnimation(LedMatrix& m);
-	void setColorHSV(uint8_t h, uint8_t s, uint8_t v) override;
 	void render() override;
 
 private:
 	static const int MAX_W = MATRIX_WIDTH;
-	uint8_t gridPulse[MAX_W];  // per-column pulse state
+	// no dynamic state required
 };
 
 #endif // NEON_GRID_ANIMATION_HPP
