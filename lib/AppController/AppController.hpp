@@ -8,9 +8,9 @@
 #include "../Animations/PowerOffAnimation/PowerOffAnimation.hpp"
 #include "../Animations/PowerOnAnimation/PowerOnAnimation.hpp"
 
-// DEBUG MODE - enable serial output for hardware testing
+// DEBUG MODE - enable serial output for hardware testing (set 0 to disable)
 #ifndef DEBUG_SERIAL
-#define DEBUG_SERIAL 1
+#define DEBUG_SERIAL 0
 #endif
 
 // настройка FPS для обновления анимации (можно переопределить в проекте)

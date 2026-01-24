@@ -13,7 +13,6 @@
 #include "../lib/Animations/SegmentRunnerAnimation/SegmentRunnerAnimation.hpp"
 #include "../lib/Animations/CenterPulseAnimation/CenterPulseAnimation.hpp"
 #include "../lib/Animations/MatrixCodeRainAnimation/MatrixCodeRainAnimation.hpp"
-#include "../lib/Animations/FlameColumnsAnimation/FlameColumnsAnimation.hpp"
 #include "../lib/Animations/EqualizerBarsAnimation/EqualizerBarsAnimation.hpp"
 #include "../lib/Animations/PowerOffAnimation/PowerOffAnimation.hpp"
 #include "../lib/AppController/AppController.hpp"
@@ -33,17 +32,18 @@ ColorStaticAnimation colorStatic(matrix);
 SegmentRunnerAnimation segmentRunner(matrix);
 CenterPulseAnimation centerPulse(matrix);
 MatrixCodeRainAnimation codeRain(matrix);
-FlameColumnsAnimation flameColumns(matrix);
 EqualizerBarsAnimation equalizerBars(matrix);
 AppController app(matrix, rotary);
 
 void setup() {
+	#if DEBUG_SERIAL
 	Serial.begin(115200);
 	while (!Serial) { delay(10); }
 	Serial.println("\n\n========================================");
 	Serial.println("  LedLine - LED Matrix Animation System");
 	Serial.println("========================================");
 	Serial.println("Starting LedLine...");
+	#endif
 
 	// init NVS (Preferences)
 	{
@@ -67,7 +67,6 @@ void setup() {
 	neonGrid.setName("Neon Grid");
 	galacticWarp.setName("Galactic Warp");
 	colorStatic.setName("Color Static");
-	flameColumns.setName("Flame Columns");
 	equalizerBars.setName("Equalizer Bars");
 
 	// register animations
@@ -83,16 +82,17 @@ void setup() {
 	app.addAnimation(&neonGrid);
 	app.addAnimation(&galacticWarp);
 	app.addAnimation(&equalizerBars);
-	app.addAnimation(&flameColumns);
 	
 	
 
 	// start controller (attaches to rotary)
 	app.begin();
 
+	#if DEBUG_SERIAL
 	Serial.println("Setup complete. Debug mode ENABLED.");
 	Serial.println("Ready for hardware testing!");
 	Serial.println("========================================\n");
+	#endif
 }
 
 void loop() {
