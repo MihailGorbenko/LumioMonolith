@@ -21,7 +21,6 @@ public:
 
 private:
 	static const int MAX_W = MATRIX_WIDTH;
-	// no dynamic state required
 };
 
 #endif // NEON_GRID_ANIMATION_HPP
