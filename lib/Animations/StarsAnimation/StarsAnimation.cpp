@@ -29,13 +29,15 @@ StarsAnimation::StarsAnimation(LedMatrix& m)
 		s.depth = (uint8_t)random(0, 3); // 0..2
 		s.xfp = ((int16_t)s.x) << 8;
 		// движение влево/вправо, ближние быстрее, но в целом медленнее
-		int8_t baseV = (s.depth == 0) ? -16 : (s.depth == 1) ? -28 : -40;
+		// make movement slower (smaller velocities) for smoother motion
+		int8_t baseV = (s.depth == 0) ? -8 : (s.depth == 1) ? -14 : -24;
 		// случайно меняем направление для разнообразия
 		if ((uint8_t)random(0, 2)) baseV = -baseV;
 		s.vfp = baseV;
 		// Плавное мерцание: индивидуальная скорость (медленная) и случайная фаза
 		s.twPhase = (uint8_t)random(0, 256);
-		s.twSpeed = (uint8_t)((s.depth == 0) ? 1 : (s.depth == 1) ? 2 : 3); // ближние чуть быстрее
+		// slower twinkle speeds for smoother effect
+		s.twSpeed = (uint8_t)((s.depth == 0) ? 1 : (s.depth == 1) ? 1 : 2);
 		stars.push_back(s);
 	}
 	// Остальные — случайно по всей матрице
@@ -44,10 +46,6 @@ StarsAnimation::StarsAnimation(LedMatrix& m)
 		randomizeStar(s);
 		stars.push_back(s);
 	}
-}
-
-void StarsAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
-	AnimationBase::setColorHSV(h, s, v);
 }
 
 bool StarsAnimation::saveColor(const char* key) {
@@ -78,17 +76,19 @@ void StarsAnimation::randomizeStar(Star& s) {
 	// Параллакс: глубина, начальная фикспозиция, скорость
 	s.depth = (uint8_t)random(0, 3);
 	s.xfp = ((int16_t)s.x) << 8;
-	int8_t baseV = (s.depth == 0) ? -16 : (s.depth == 1) ? -28 : -40;
+	// slower lateral movement
+	int8_t baseV = (s.depth == 0) ? -8 : (s.depth == 1) ? -14 : -24;
 	if ((uint8_t)random(0, 2)) baseV = -baseV;
 	s.vfp = baseV;
 	// Плавное мерцание: фаза и скорость
 	s.twPhase = (uint8_t)random(0, 256);
-	s.twSpeed = (uint8_t)((s.depth == 0) ? 1 : (s.depth == 1) ? 2 : 3);
+	s.twSpeed = (uint8_t)((s.depth == 0) ? 1 : (s.depth == 1) ? 1 : 2);
 }
 
 void StarsAnimation::render() {
-	unsigned long now = millis();
+	uint32_t now = millis();
 	// очистка матрицы перед рисованием (контроллер задаёт частоту вызова render)
+	if (!matrix) return;
 	matrix->clear();
 
 	// размеры для обёртки и фикс-точки
@@ -98,46 +98,67 @@ void StarsAnimation::render() {
 	if (h <= 0) h = 8;
 	int w8 = w << 8;
 
+	// dt в миллисекундах с предохранением на первый кадр
+	uint32_t dt = 0;
+	if (lastMillis == 0) dt = 16;
+	else dt = now - lastMillis;
+
 	for (auto &s : stars) {
+		// Обновляем целевую яркость с помощью sin8 + noise8 для естественности
+		// noise per-star gives spatial variance
+		uint8_t noise = inoise8((uint16_t)s.x * 17u + (uint16_t)s.y * 29u);
+		// tw is 0..255
+		uint8_t tw = sin8((uint8_t)(s.twPhase) + noise);
+		// scale tw by master val to get a target in 0..val
+		uint8_t computedTarget = scale8(tw, (uint8_t)val);
+		// occasionally refresh target timing
 		if (now >= s.nextChangeMillis) {
-			s.target = random(0, (int)val + 1);
-			s.nextChangeMillis = now + random(100, 1500);
+			s.target = computedTarget;
+			s.nextChangeMillis = now + (unsigned long)random(100, 1500);
 		}
 
-		// Обновляем позицию по X с учётом параллакса
-		s.xfp = (int16_t)(s.xfp + s.vfp);
-		if (s.xfp >= w8) s.xfp -= w8;
-		else if (s.xfp < 0) s.xfp += w8;
+		// Обновляем позицию по X с учётом параллакса и dt (fixed-point)
+		// slower movement: increase divisor so per-ms movement is smaller
+		int32_t delta = ((int32_t)s.vfp * (int32_t)dt) / 64; // smoother, slower motion
+		s.xfp = (int16_t)(s.xfp + delta);
+		// корректный wrap в пределах 0..w8-1
+		while (s.xfp >= w8) s.xfp -= w8;
+		while (s.xfp < 0) s.xfp += w8;
 		s.x = (uint8_t)(s.xfp >> 8);
 
-		// Обновляем мерцание (brightness -> target) очень мелкими шагами
+		// Обновляем мерцание (brightness -> target) малыми шагами, зависящими от dt
 		if (s.brightness < s.target) {
-			uint8_t diff = (uint8_t)(s.target - s.brightness);
-			uint8_t delta = (diff > 1) ? 1 : diff; // ещё медленнее
-			s.brightness = s.brightness + delta;
+			uint16_t diff = (uint16_t)(s.target - s.brightness);
+			// slower smoothing: larger divisor for dt
+			uint16_t step = (dt / 200u) + 1u; // much slower approach
+			if (step > diff) step = diff;
+			s.brightness = (uint8_t)(s.brightness + (uint8_t)step);
 		} else if (s.brightness > s.target) {
-			uint8_t diff = (uint8_t)(s.brightness - s.target);
-			uint8_t delta = (diff > 1) ? 1 : diff;
-			s.brightness = s.brightness - delta;
+			uint16_t diff = (uint16_t)(s.brightness - s.target);
+			uint16_t step = (dt / 200u) + 1u;
+			if (step > diff) step = diff;
+			s.brightness = (uint8_t)(s.brightness - (uint8_t)step);
 		}
 
-		// Синусоидальная модуляция: медленная фаза для мягкого мерцания
+		// advance twinkle phase
 		s.twPhase = (uint8_t)(s.twPhase + s.twSpeed);
-		uint8_t tw = sin8(s.twPhase); // 0..255
 
 		// Сделаем звезды заметнее: используем линейную яркость и ниже порог
-		// Базовая яркость
 		uint8_t baseV = s.brightness;
-		// Параллакс-яркость: дальние слои тусклее, ближние ярче
 		uint8_t depthGain = (s.depth == 0) ? 180 : (s.depth == 1) ? 220 : 255;
 		baseV = scale8(baseV, depthGain);
-		// Плавная синус-модуляция (ослабляющая): 160..224 коэффициент
-		uint8_t twMod = (uint8_t)(160 + (tw >> 2));
+		// soften with tw (already used for target) — apply small modulation
+		// milder twinkle modulation (slower/smoother)
+		uint8_t twMod = (uint8_t)(160 + (tw >> 3));
 		baseV = scale8(baseV, twMod);
-		uint8_t drawV = scale8(val, baseV);
+		uint8_t drawV = scale8((uint8_t)val, baseV);
 		if (drawV < 12) continue; // отсечём совсем слабые
-		matrix->setPixelHSV(s.x, s.y, hue, sat, drawV);
+		// slight hue shift by depth for parallax color
+		uint8_t starHue = (uint8_t)(hue + (s.depth == 2 ? 0 : (s.depth == 1 ? 4 : 8)));
+		matrix->setPixelHSV(s.x, s.y, starHue, sat, drawV);
 	}
+
+	lastMillis = now;
 
 	matrix->show();
 }

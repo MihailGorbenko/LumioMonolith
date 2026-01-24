@@ -25,8 +25,7 @@ public:
 	// принимает только матрицу; прочие параметры — дефайнами
 	explicit StarsAnimation(LedMatrix& m);
 
-	// унаследованный метод: установить цвет (base хранит hue/sat/val)
-	void setColorHSV(uint8_t h, uint8_t s, uint8_t v) override;
+	// (use base `setColorHSV`)
 
 	// отрисовка кадра — вызывать часто из loop()
 	void render() override;
@@ -53,6 +52,8 @@ private:
 
 	std::vector<Star> stars;
 	int starCount;
+	// время последнего кадра для dt-зависимого движения
+	uint32_t lastMillis = 0;
 	
 
 	// вспомогательные
