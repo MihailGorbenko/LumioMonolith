@@ -1,4 +1,5 @@
 #include "MatrixCodeRainAnimation.hpp"
+#include <FastLED.h>
 
 MatrixCodeRainAnimation::MatrixCodeRainAnimation(LedMatrix& m)
         : AnimationBase(m, MATRIX_RAIN_DEFAULT_HUE, MATRIX_RAIN_DEFAULT_SAT, MATRIX_RAIN_DEFAULT_VAL),
