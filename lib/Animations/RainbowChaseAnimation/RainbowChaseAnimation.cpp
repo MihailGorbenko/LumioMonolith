@@ -5,11 +5,6 @@ RainbowChaseAnimation::RainbowChaseAnimation(LedMatrix& m)
 	: AnimationBase(m, RAINBOWCHASE_DEFAULT_HUE, RAINBOWCHASE_DEFAULT_SAT, RAINBOWCHASE_DEFAULT_VAL) {
 }
 
-void RainbowChaseAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
-	// Rainbow: hue offset, saturation and value control intensity
-	AnimationBase::setColorHSV(h, s, v);
-}
-
 void RainbowChaseAnimation::render() {
 	if (!matrix) return;
 	matrix->clear();
