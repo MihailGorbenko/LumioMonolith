@@ -2,9 +2,9 @@
 
 PowerOffAnimation::PowerOffAnimation(LedMatrix& m)
 	: matrix(&m),
-	  hue(POWEROFF_DEFAULT_HUE),
-	  sat(POWEROFF_DEFAULT_SAT),
-	  val(POWEROFF_DEFAULT_VAL),
+			hue(POWEROFF_DEFAULT_HUE),
+			sat(POWEROFF_DEFAULT_SAT),
+			val(POWEROFF_DEFAULT_VAL),
 	  progress(0) {
 	// пусто
 }
@@ -14,8 +14,9 @@ void PowerOffAnimation::setProgress(uint8_t p) {
 }
 
 void PowerOffAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
-	// заглушка: обновляем цвет, но не сохраняем
-	hue = h; sat = s; val = v;
+	// Для PowerOff цвет фиксирован — принимаем только яркость (val).
+	(void)h; (void)s;
+	val = v;
 }
 
 bool PowerOffAnimation::saveColor(const char* key) {
@@ -60,7 +61,7 @@ void PowerOffAnimation::render() {
 		}
 
 		for (int x = 0; x < w; ++x) {
-			if (rowV > 0) matrix->setPixelHSV(x, y, hue, sat, rowV);
+			if (rowV > 0) matrix->setPixelHSV(x, y, POWEROFF_DEFAULT_HUE, POWEROFF_DEFAULT_SAT, rowV);
 		}
 	}
 
