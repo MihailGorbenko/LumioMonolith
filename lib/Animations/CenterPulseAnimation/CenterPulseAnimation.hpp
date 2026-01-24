@@ -18,13 +18,10 @@ class CenterPulseAnimation : public AnimationBase {
 public:
     explicit CenterPulseAnimation(LedMatrix& m);
 
-    void setColorHSV(uint8_t h, uint8_t s, uint8_t v) override;
-    void setStride(uint8_t s);       // distance attenuation per row
     void setSpeedDiv(uint8_t div);   // smaller = faster
     void render() override;
 
 private:
-    uint8_t stride;  // brightness falloff per row distance from center
     uint8_t speedDiv; // time divider for sin phase
 };
 

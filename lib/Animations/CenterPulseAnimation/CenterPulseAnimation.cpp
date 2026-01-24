@@ -2,14 +2,9 @@
 #include <FastLED.h>
 
 CenterPulseAnimation::CenterPulseAnimation(LedMatrix& m)
-    : AnimationBase(m, CENTERPULSE_DEFAULT_HUE, CENTERPULSE_DEFAULT_SAT, CENTERPULSE_DEFAULT_VAL),
-      stride(72), speedDiv(6) {}
+        : AnimationBase(m, CENTERPULSE_DEFAULT_HUE, CENTERPULSE_DEFAULT_SAT, CENTERPULSE_DEFAULT_VAL),
+            speedDiv(6) {}
 
-void CenterPulseAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
-    AnimationBase::setColorHSV(h, s, v);
-}
-
-void CenterPulseAnimation::setStride(uint8_t s) { stride = (s == 0) ? 1 : s; }
 void CenterPulseAnimation::setSpeedDiv(uint8_t div) { speedDiv = (div == 0) ? 1 : div; }
 
 void CenterPulseAnimation::render() {
@@ -36,18 +31,14 @@ void CenterPulseAnimation::render() {
     for (int y = 0; y < h; ++y) {
         int d = abs(y - center);
         uint8_t vRow = 0;
-        if (d < radius) {
-            vRow = val; // fully lit inside the current radius
-        } else if (d == radius) {
-            // inside boundary row remains fully lit as radius grows
-            vRow = val;
+        if (d <= radius) {
+            vRow = val; // fully lit inside and on current radius
         } else if (d == (radius + 1)) {
             // frontier row beyond current radius: blend in progressively
             vRow = scale8(val, frac);
         } else {
-            vRow = 0;
+            continue;
         }
-        if (!vRow) continue;
         for (int x = 0; x < w; ++x) {
             matrix->setPixelHSV(x, y, hue, sat, vRow);
         }
