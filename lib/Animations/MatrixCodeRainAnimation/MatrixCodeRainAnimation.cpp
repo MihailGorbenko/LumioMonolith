@@ -1,27 +1,47 @@
 #include "MatrixCodeRainAnimation.hpp"
-#include <FastLED.h>
 
 MatrixCodeRainAnimation::MatrixCodeRainAnimation(LedMatrix& m)
         : AnimationBase(m, MATRIX_RAIN_DEFAULT_HUE, MATRIX_RAIN_DEFAULT_SAT, MATRIX_RAIN_DEFAULT_VAL),
-            speedDiv(3), tailLen(3), nextStepMs(0), stepPeriodMs(50) {
-        int w = m.getWidth();
-        int h = m.getHeight();
-        tailLen = (uint8_t)min<uint8_t>(tailLen, (h > 0 ? (h - 1) : 1));
-        for (int x = 0; x < w; ++x) {
-                heads[x] = random8(0, (h > 0 ? h : 1)); // start within visible area for constant presence
-        }
+            tailLen(1), heads(nullptr), counter(nullptr), speeds(nullptr), numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(50) {
+    int w = m.getWidth();
+    int h = m.getHeight();
+    // обычная логика: колонки = ширина, строки = высота
+    numCols = w;
+    numRows = h;
+    // хвост ограничиваем высотой (движение по Y)
+    tailLen = (uint8_t)min<uint8_t>(tailLen, (numRows > 0 ? (numRows - 1) : 1));
+    // выделяем память для массивов по количеству колонок (15)
+    heads = new int[numCols];
+    counter = new uint8_t[numCols];
+    speeds = new uint8_t[numCols];
+    // головы по каждому столбцу X (позиции вдоль сегмента) с разными начальными позициями и скоростями
+        for (int x = 0; x < numCols; ++x) {
+        heads[x] = random8(0, (numRows > 0 ? numRows : 1));
+        // per-column random speed: larger -> slower. Choose 4..12 (slower than before)
+        speeds[x] = (uint8_t)random8(4, 13);
+        // стартовый сдвиг в пределах скорости, чтобы стартовали в разное время
+        counter[x] = random8(speeds[x]);
+    }
 }
 
-void MatrixCodeRainAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
-    AnimationBase::setColorHSV(h, s, v);
-}
-
-void MatrixCodeRainAnimation::setSpeedDiv(uint8_t div) {
-    speedDiv = (div == 0) ? 1 : div;
+MatrixCodeRainAnimation::~MatrixCodeRainAnimation() {
+    if (heads) {
+        delete[] heads;
+        heads = nullptr;
+    }
+    if (counter) {
+        delete[] counter;
+        counter = nullptr;
+    }
+    if (speeds) {
+        delete[] speeds;
+        speeds = nullptr;
+    }
 }
 
 void MatrixCodeRainAnimation::setTailLen(uint8_t len) {
-    tailLen = (len == 0) ? 1 : len;
+    uint8_t maxTail = (numRows > 0) ? (numRows - 1) : 1;
+    tailLen = (len == 0) ? 1 : (uint8_t)min<uint8_t>(len, maxTail);
 }
 
 void MatrixCodeRainAnimation::render() {
@@ -32,29 +52,30 @@ void MatrixCodeRainAnimation::render() {
     if (h <= 0) h = 1;
 
     uint32_t now = millis();
-    if (now >= nextStepMs) {
-        nextStepMs = now + (stepPeriodMs * speedDiv);
-        // continuous top->down movement, wrap within visible area
-        for (int x = 0; x < w; ++x) {
-            int head = heads[x] + 1;
-            if (head >= h) head = 0;
-            heads[x] = head;
+    if ((int32_t)(now - nextStepMs) >= 0) {
+        nextStepMs = now + stepPeriodMs;
+        // движение вниз по Y с индивидуальным таймингом для каждой второй колонки (через столбец)
+        for (int x = 0; x < numCols; x += 2) {
+            counter[x]++;
+            if (counter[x] >= speeds[x]) {
+                counter[x] = 0;
+                int head = heads[x] + 1;
+                if (head >= numRows) head = 0;
+                heads[x] = head;
+            }
         }
     }
 
     matrix->clear();
-    // draw columns with tail falloff (constant per-column presence)
-    for (int x = 0; x < w; ++x) {
+    // вертикальный дождь сверху вниз: капли через столбец (чистый цвет)
+    for (int x = 0; x < numCols; x += 2) {
         int head = heads[x];
         for (int t = 0; t <= tailLen; ++t) {
             int y = head - t;
-            if (y < 0 || y >= h) continue;
-            // brightness falloff for tail
-            uint8_t fall = (uint8_t)(255 - (t * (255 / (tailLen + 1))));
-            uint8_t b = (t == 0) ? val : scale8(val, fall);
-            // slight hue shift for head vs tail
-            uint8_t huseg = (t == 0) ? hue : hue - 8;
-            matrix->setPixelHSV(x, y, huseg, sat, b);
+            if (y < 0) y += numRows; // wrap around
+            if (y >= numRows) continue;
+            uint8_t vpix = (t == 0) ? val : scale8(val, 180); // slight brightness gap for tail
+            matrix->setPixelHSV(x, y, hue, sat, vpix);
         }
     }
 
