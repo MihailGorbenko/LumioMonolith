@@ -7,7 +7,6 @@
 #include "../lib/Animations/PlasmaAnimation/PlasmaAnimation.hpp"
 #include "../lib/Animations/SparkleWaveAnimation/SparkleWaveAnimation.hpp"
 #include "../lib/Animations/PulseWaveAnimation/PulseWaveAnimation.hpp"
-#include "../lib/Animations/GalacticWarpAnimation/GalacticWarpAnimation.hpp"
 #include "../lib/Animations/ColorStaticAnimation/ColorStaticAnimation.hpp"
 #include "../lib/Animations/SegmentRunnerAnimation/SegmentRunnerAnimation.hpp"
 #include "../lib/Animations/CenterPulseAnimation/CenterPulseAnimation.hpp"
@@ -25,7 +24,6 @@ PlasmaAnimation plasma(matrix);
 SparkleWaveAnimation sparkleWave(matrix);
 PulseWaveAnimation pulseWave(matrix);
 // MatrixRainAnimation removed
-GalacticWarpAnimation galacticWarp(matrix);
 ColorStaticAnimation colorStatic(matrix);
 SegmentRunnerAnimation segmentRunner(matrix);
 CenterPulseAnimation centerPulse(matrix);
@@ -62,7 +60,6 @@ void setup() {
 	sparkleWave.setName("Sparkle Wave");
 	pulseWave.setName("Pulse Wave");
 	codeRain.setName("Matrix Code Rain");
-	galacticWarp.setName("Galactic Warp");
 	colorStatic.setName("Color Static");
 	equalizerBars.setName("Equalizer Bars");
 
@@ -76,7 +73,6 @@ void setup() {
 	app.addAnimation(&pulseWave);
 	
 	app.addAnimation(&plasma);
-	app.addAnimation(&galacticWarp);
 	app.addAnimation(&equalizerBars);
 	app.addAnimation(&colorStatic);
 	
