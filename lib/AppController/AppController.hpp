@@ -10,7 +10,7 @@
 
 // DEBUG MODE - enable serial output for hardware testing (set 0 to disable)
 #ifndef DEBUG_SERIAL
-#define DEBUG_SERIAL 0
+#define DEBUG_SERIAL 1
 #endif
 
 // настройка FPS для обновления анимации (можно переопределить в проекте)

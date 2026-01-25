@@ -7,7 +7,6 @@
 #include "../lib/Animations/PlasmaAnimation/PlasmaAnimation.hpp"
 #include "../lib/Animations/SparkleWaveAnimation/SparkleWaveAnimation.hpp"
 #include "../lib/Animations/PulseWaveAnimation/PulseWaveAnimation.hpp"
-#include "../lib/Animations/NeonGridAnimation/NeonGridAnimation.hpp"
 #include "../lib/Animations/GalacticWarpAnimation/GalacticWarpAnimation.hpp"
 #include "../lib/Animations/ColorStaticAnimation/ColorStaticAnimation.hpp"
 #include "../lib/Animations/SegmentRunnerAnimation/SegmentRunnerAnimation.hpp"
@@ -26,7 +25,6 @@ PlasmaAnimation plasma(matrix);
 SparkleWaveAnimation sparkleWave(matrix);
 PulseWaveAnimation pulseWave(matrix);
 // MatrixRainAnimation removed
-NeonGridAnimation neonGrid(matrix);
 GalacticWarpAnimation galacticWarp(matrix);
 ColorStaticAnimation colorStatic(matrix);
 SegmentRunnerAnimation segmentRunner(matrix);
@@ -64,24 +62,23 @@ void setup() {
 	sparkleWave.setName("Sparkle Wave");
 	pulseWave.setName("Pulse Wave");
 	codeRain.setName("Matrix Code Rain");
-	neonGrid.setName("Neon Grid");
 	galacticWarp.setName("Galactic Warp");
 	colorStatic.setName("Color Static");
 	equalizerBars.setName("Equalizer Bars");
 
 	// register animations
-	app.addAnimation(&colorStatic);
+	app.addAnimation(&centerPulse);
+	app.addAnimation(&segmentRunner);
 	app.addAnimation(&codeRain);
 	app.addAnimation(&stars);
 	app.addAnimation(&rainbow);
-	app.addAnimation(&segmentRunner);
-	app.addAnimation(&centerPulse);
-	app.addAnimation(&plasma);
 	app.addAnimation(&sparkleWave);
 	app.addAnimation(&pulseWave);
-	app.addAnimation(&neonGrid);
+	
+	app.addAnimation(&plasma);
 	app.addAnimation(&galacticWarp);
 	app.addAnimation(&equalizerBars);
+	app.addAnimation(&colorStatic);
 	
 	
 
