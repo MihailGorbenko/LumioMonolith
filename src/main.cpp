@@ -7,11 +7,13 @@
 #include "../lib/Animations/PlasmaAnimation/PlasmaAnimation.hpp"
 #include "../lib/Animations/SparkleWaveAnimation/SparkleWaveAnimation.hpp"
 #include "../lib/Animations/PulseWaveAnimation/PulseWaveAnimation.hpp"
-#include "../lib/Animations/ColorStaticAnimation/ColorStaticAnimation.hpp"
 #include "../lib/Animations/SegmentRunnerAnimation/SegmentRunnerAnimation.hpp"
 #include "../lib/Animations/CenterPulseAnimation/CenterPulseAnimation.hpp"
 #include "../lib/Animations/MatrixCodeRainAnimation/MatrixCodeRainAnimation.hpp"
 #include "../lib/Animations/EqualizerBarsAnimation/EqualizerBarsAnimation.hpp"
+#include "../lib/Animations/EnergyCirclesAnimation/EnergyCirclesAnimation.hpp"
+#include "../lib/Animations/ReactorTurbinesAnimation/ReactorTurbinesAnimation.hpp"
+#include "../lib/Animations/ChargingPulseAnimation/ChargingPulseAnimation.hpp"
 #include "../lib/Animations/PowerOffAnimation/PowerOffAnimation.hpp"
 #include "../lib/AppController/AppController.hpp"
 
@@ -23,12 +25,13 @@ RainbowChaseAnimation rainbow(matrix);
 PlasmaAnimation plasma(matrix);
 SparkleWaveAnimation sparkleWave(matrix);
 PulseWaveAnimation pulseWave(matrix);
-// MatrixRainAnimation removed
-ColorStaticAnimation colorStatic(matrix);
 SegmentRunnerAnimation segmentRunner(matrix);
 CenterPulseAnimation centerPulse(matrix);
 MatrixCodeRainAnimation codeRain(matrix);
 EqualizerBarsAnimation equalizerBars(matrix);
+EnergyCirclesAnimation energyCircles(matrix);
+ReactorTurbinesAnimation reactorTurbines(matrix);
+ChargingPulseAnimation chargingPulse(matrix);
 AppController app(matrix, rotary);
 
 void setup() {
@@ -60,21 +63,25 @@ void setup() {
 	sparkleWave.setName("Sparkle Wave");
 	pulseWave.setName("Pulse Wave");
 	codeRain.setName("Matrix Code Rain");
-	colorStatic.setName("Color Static");
 	equalizerBars.setName("Equalizer Bars");
+	energyCircles.setName("Energy Circles");
+	reactorTurbines.setName("Reactor Turbines");
+	chargingPulse.setName("Charging Pulse");
 
 	// register animations
 	app.addAnimation(&centerPulse);
 	app.addAnimation(&segmentRunner);
 	app.addAnimation(&codeRain);
 	app.addAnimation(&stars);
-	app.addAnimation(&rainbow);
 	app.addAnimation(&sparkleWave);
 	app.addAnimation(&pulseWave);
-	
+	app.addAnimation(&energyCircles);
+	app.addAnimation(&reactorTurbines);
 	app.addAnimation(&plasma);
 	app.addAnimation(&equalizerBars);
-	app.addAnimation(&colorStatic);
+	app.addAnimation(&chargingPulse);
+	app.addAnimation(&rainbow);
+	
 	
 	
 

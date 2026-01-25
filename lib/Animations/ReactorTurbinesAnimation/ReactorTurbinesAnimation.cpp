@@ -1,0 +1,60 @@
+#include "ReactorTurbinesAnimation.hpp"
+#include <math.h>
+#include <FastLED.h>
+
+ReactorTurbinesAnimation::ReactorTurbinesAnimation(LedMatrix& m)
+    : AnimationBase(m, REACTOR_DEFAULT_HUE, REACTOR_DEFAULT_SAT, REACTOR_DEFAULT_VAL) {}
+
+void ReactorTurbinesAnimation::render() {
+    if (!matrix) return;
+
+    const int w = matrix->width();
+    const int h = matrix->height();
+    if (w <= 0 || h <= 0) return;
+
+    matrix->clear();
+
+    const uint32_t now = millis();
+    const float t = now / (float)REACTOR_SPEED_MS;
+
+    // Center row to vary segment length slightly like concentric rings
+    const float center = (h - 1) * 0.5f;
+    const int baseLen = REACTOR_SEGMENT_LEN;
+    const int maxDelta = 2; // shorter at edges, longest near center
+
+    for (int y = 0; y < h; ++y) {
+        // Per-ring segment length variation
+        int delta = (int)roundf((h > 1 ? fabsf(y - center) / center : 0.f) * maxDelta);
+        int segLen = max(1, baseLen - delta);
+
+        // Unique phase per ring
+        int phase = (y * w) / h;
+        float speedFactor = 1.0f + 0.12f * sinf(6.2831853f * ((y + 0.5f) / (float)h));
+        int stepRow = ((int)(t * speedFactor)) % w;
+        int pos = (phase + stepRow) % w;
+        pos = (pos + w) % w;
+
+        // Two counter-rotating turbine segments on the same ring
+        int posRight = pos;             // moves to the right
+        int posLeft  = w - 1 - pos;     // moves to the left
+
+        // Brightness contrast for turbine blades
+        uint8_t vBright = val;                  // leading turbine
+        uint8_t vDim    = scale8(val, REACTOR_DIM_SCALE); // trailing turbine (dimmer)
+
+        // Draw dim (left-moving) first so bright overwrites on overlap
+        for (int i = 0; i < segLen; ++i) {
+            int x = posLeft - i;
+            while (x < 0) x += w;
+            x %= w;
+            matrix->setPixelHSV(x, y, hue, sat, vDim);
+        }
+        // Draw bright (right-moving) turbine
+        for (int i = 0; i < segLen; ++i) {
+            int x = (posRight + i) % w;
+            matrix->setPixelHSV(x, y, hue, sat, vBright);
+        }
+    }
+
+    matrix->show();
+}
