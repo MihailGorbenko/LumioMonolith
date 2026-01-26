@@ -2,6 +2,7 @@
 #include <Preferences.h>
 #include "../lib/LedMatrix/LedMatrix.hpp"
 #include "../lib/RotaryEncoder/RotaryEncoder.hpp"
+#include "../lib/InputManager/InputManager.hpp"
 #include "../lib/Animations/StarsAnimation/StarsAnimation.hpp"
 #include "../lib/Animations/RainbowChaseAnimation/RainbowChaseAnimation.hpp"
 #include "../lib/Animations/PlasmaAnimation/PlasmaAnimation.hpp"
@@ -20,6 +21,7 @@
 // глобальные компоненты
 LedMatrix matrix;
 RotaryEncoder rotary;
+InputManager input(rotary);
 StarsAnimation stars(matrix);
 RainbowChaseAnimation rainbow(matrix);
 PlasmaAnimation plasma(matrix);
@@ -32,42 +34,24 @@ EqualizerBarsAnimation equalizerBars(matrix);
 EnergyCirclesAnimation energyCircles(matrix);
 ReactorTurbinesAnimation reactorTurbines(matrix);
 ChargingPulseAnimation chargingPulse(matrix);
-AppController app(matrix, rotary);
+AppController app(matrix, input);
 
 void setup() {
 	#if DEBUG_SERIAL
 	Serial.begin(115200);
 	while (!Serial) { delay(10); }
 	Serial.println("\n\n========================================");
-	Serial.println("  LedLine - LED Matrix Animation System");
+	Serial.println("  LumioMonolith - LED Matrix Animation System");
 	Serial.println("========================================");
-	Serial.println("Starting LedLine...");
+	Serial.println("Starting LumioMonolith...");
 	#endif
 
-	// init NVS (Preferences)
-	{
-		Preferences prefs;
-		prefs.begin("app", false);
-		prefs.end();
-	}
-
+	// init NVS via StorageManager once
+	app.storage.begin("app", false);
 	// init hardware
 	matrix.init();
-
-	// set readable animation names
-	stars.setName("Stars");
-	rainbow.setName("Rainbow Chase");
-	segmentRunner.setName("Segment Runner");
-	centerPulse.setName("Center Pulse");
-	plasma.setName("Plasma");
-	sparkleWave.setName("Sparkle Wave");
-	pulseWave.setName("Pulse Wave");
-	codeRain.setName("Matrix Code Rain");
-	equalizerBars.setName("Equalizer Bars");
-	energyCircles.setName("Energy Circles");
-	reactorTurbines.setName("Reactor Turbines");
-	chargingPulse.setName("Charging Pulse");
-
+	// init input manager (attaches to encoder and configures it)
+	input.begin();
 	// register animations
 	app.addAnimation(&centerPulse);
 	app.addAnimation(&segmentRunner);
@@ -82,10 +66,6 @@ void setup() {
 	app.addAnimation(&chargingPulse);
 	app.addAnimation(&rainbow);
 	
-	
-	
-
-	// start controller (attaches to rotary)
 	app.begin();
 
 	#if DEBUG_SERIAL
@@ -96,9 +76,8 @@ void setup() {
 }
 
 void loop() {
-	// poll encoder (produces events to AppController)
-	rotary.update();
-
+	// poll input manager (produces events to AppController)
+	input.update();
 	// update app (renders animations / handles poweroff)
 	app.update();
 }
