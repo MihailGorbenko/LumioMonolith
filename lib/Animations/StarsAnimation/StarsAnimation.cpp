@@ -3,6 +3,7 @@
 
 StarsAnimation::StarsAnimation(LedMatrix& m)
 	: AnimationBase(m, STARS_DEFAULT_HUE, STARS_DEFAULT_SAT, STARS_DEFAULT_VAL) {
+	name = STARS_ANIMATION_NAME;
 	// вычисляем количество звёзд автоматически по размеру матрицы (~40% пикселей)
 	int w = 0, h = 0;
 	if (matrix) {
@@ -48,12 +49,19 @@ StarsAnimation::StarsAnimation(LedMatrix& m)
 	}
 }
 
-bool StarsAnimation::saveColor(const char* key) {
-	return saveToNVS(key);
+// legacy save/load removed; use ISerializable with StorageManager
+
+bool StarsAnimation::serialize(uint8_t* out, size_t maxLen) const {
+	if (!out || maxLen < 2) return false;
+	out[0] = hue;
+	out[1] = sat;
+	return true;
 }
 
-bool StarsAnimation::loadColor(const char* key) {
-	return loadFromNVS(key);
+bool StarsAnimation::deserialize(const uint8_t* data, size_t len) {
+	if (!data || len < 2) return false;
+	setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
+	return true;
 }
 
 void StarsAnimation::randomizeStar(Star& s) {

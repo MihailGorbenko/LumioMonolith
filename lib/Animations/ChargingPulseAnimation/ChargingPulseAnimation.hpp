@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "../../Animation/Animation.hpp"
+#include "../../StorageManager/Serializable.hpp"
 
 #ifndef CHARGING_DEFAULT_HUE
 #define CHARGING_DEFAULT_HUE 96 // greenish by default
@@ -27,10 +28,21 @@
 #define CHARGING_FADE_MS 260
 #endif
 
-class ChargingPulseAnimation : public AnimationBase {
+// Readable name
+#ifndef CHARGINGPULSE_ANIMATION_NAME
+#define CHARGINGPULSE_ANIMATION_NAME "Charging Pulse"
+#endif
+
+class ChargingPulseAnimation : public AnimationBase, public ISerializable {
 public:
     explicit ChargingPulseAnimation(LedMatrix& m);
     void render() override;
+
+    // ISerializable
+    size_t serializedSize() const override { return 2; }
+    bool serialize(uint8_t* out, size_t maxLen) const override;
+    bool deserialize(const uint8_t* data, size_t len) override;
+    ISerializable* serializable() override { return this; }
 };
 
 #endif // CHARGING_PULSE_ANIMATION_HPP

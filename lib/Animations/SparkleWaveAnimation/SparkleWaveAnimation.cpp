@@ -4,6 +4,7 @@
 SparkleWaveAnimation::SparkleWaveAnimation(LedMatrix& m)
 		: AnimationBase(m, SPARKLEWAVE_DEFAULT_HUE, SPARKLEWAVE_DEFAULT_SAT, SPARKLEWAVE_DEFAULT_VAL),
 			sparkleChance(28) {
+    name = SPARKLEWAVE_ANIMATION_NAME;
 }
 
 void SparkleWaveAnimation::render() {
@@ -38,4 +39,17 @@ void SparkleWaveAnimation::render() {
 	}
 
 	matrix->show();
+}
+
+bool SparkleWaveAnimation::serialize(uint8_t* out, size_t maxLen) const {
+	if (!out || maxLen < 2) return false;
+	out[0] = hue;
+	out[1] = sat;
+	return true;
+}
+
+bool SparkleWaveAnimation::deserialize(const uint8_t* data, size_t len) {
+	if (!data || len < 2) return false;
+	setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
+	return true;
 }

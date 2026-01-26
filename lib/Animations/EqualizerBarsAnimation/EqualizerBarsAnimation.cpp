@@ -5,6 +5,7 @@ EqualizerBarsAnimation::EqualizerBarsAnimation(LedMatrix& m)
         : AnimationBase(m, EQ_DEFAULT_HUE, EQ_DEFAULT_SAT, EQ_DEFAULT_VAL),
                 speedDiv(2), step(1), nextStepMs(0), stepPeriodMs(30),
             numCols(0), numRows(0) {
+    name = EQUALIZERBARS_ANIMATION_NAME;
     int w = m.getWidth();
     int h = m.getHeight();
             numCols = min(w > 0 ? w : 1, MATRIX_WIDTH);
@@ -72,4 +73,17 @@ void EqualizerBarsAnimation::render() {
     }
 
     matrix->show();
+}
+
+bool EqualizerBarsAnimation::serialize(uint8_t* out, size_t maxLen) const {
+    if (!out || maxLen < 2) return false;
+    out[0] = hue;
+    out[1] = sat;
+    return true;
+}
+
+bool EqualizerBarsAnimation::deserialize(const uint8_t* data, size_t len) {
+    if (!data || len < 2) return false;
+    setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
+    return true;
 }

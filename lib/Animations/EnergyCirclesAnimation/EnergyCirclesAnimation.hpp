@@ -2,6 +2,7 @@
 #define ENERGYCIRCLES_ANIMATION_HPP
 
 #include "../../Animation/Animation.hpp"
+#include "../../StorageManager/Serializable.hpp"
 
 #ifndef ENERGY_DEFAULT_HUE
 #define ENERGY_DEFAULT_HUE 0
@@ -25,10 +26,21 @@
 #define ENERGY_SPEED_MS 80
 #endif
 
-class EnergyCirclesAnimation : public AnimationBase {
+// Readable name
+#ifndef ENERGYCIRCLES_ANIMATION_NAME
+#define ENERGYCIRCLES_ANIMATION_NAME "Energy Circles"
+#endif
+
+class EnergyCirclesAnimation : public AnimationBase, public ISerializable {
 public:
     explicit EnergyCirclesAnimation(LedMatrix& m);
     void render() override;
+
+    // ISerializable
+    size_t serializedSize() const override { return 2; }
+    bool serialize(uint8_t* out, size_t maxLen) const override;
+    bool deserialize(const uint8_t* data, size_t len) override;
+    ISerializable* serializable() override { return this; }
 };
 
 #endif // ENERGYCIRCLES_ANIMATION_HPP

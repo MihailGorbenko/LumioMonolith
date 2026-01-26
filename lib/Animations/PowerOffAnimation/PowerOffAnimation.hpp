@@ -24,8 +24,6 @@ public:
 
 	// заглушки для установки/сохранения цвета (цвет динамический/фиксированный)
 	void setColorHSV(uint8_t h, uint8_t s, uint8_t v);
-	bool saveColor(const char* key);
-	bool loadColor(const char* key);
 
 	// отрисовать кадр (вызывать контроллером с нужной частотой)
 	void render();

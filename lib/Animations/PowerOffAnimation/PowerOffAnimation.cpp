@@ -19,17 +19,6 @@ void PowerOffAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
 	val = v;
 }
 
-bool PowerOffAnimation::saveColor(const char* key) {
-	Serial.print("PowerOffAnimation: saveColor - stub, not saved for key: ");
-	Serial.println(key ? key : "(null)");
-	return false;
-}
-
-bool PowerOffAnimation::loadColor(const char* key) {
-	Serial.print("PowerOffAnimation: loadColor - stub, not loaded for key: ");
-	Serial.println(key ? key : "(null)");
-	return false;
-}
 
 void PowerOffAnimation::render() {
 	if (!matrix) return;

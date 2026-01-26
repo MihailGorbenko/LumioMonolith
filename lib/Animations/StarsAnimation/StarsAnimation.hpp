@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <vector>
 #include "../Animation/Animation.hpp"
+#include "../StorageManager/Serializable.hpp"
 
 // default configuration (можно переопределить в проекте перед инклюдом)
 #ifndef STARS_DEFAULT_HUE
@@ -19,8 +20,13 @@
 #define STARS_STAR_COUNT 20
 #endif
 
+// Readable name
+#ifndef STARS_ANIMATION_NAME
+#define STARS_ANIMATION_NAME "Stars"
+#endif
 
-class StarsAnimation : public AnimationBase {
+
+class StarsAnimation : public AnimationBase, public ISerializable {
 public:
 	// принимает только матрицу; прочие параметры — дефайнами
 	explicit StarsAnimation(LedMatrix& m);
@@ -30,9 +36,13 @@ public:
 	// отрисовка кадра — вызывать часто из loop()
 	void render() override;
 
-	// сохраняет/загружает цвет анимации в NVS под заданным ключом
-	bool saveColor(const char* key);
-	bool loadColor(const char* key);
+	// (legacy NVS helpers removed; use ISerializable via StorageManager)
+
+	// ISerializable
+	size_t serializedSize() const override { return 2; }
+	bool serialize(uint8_t* out, size_t maxLen) const override;
+	bool deserialize(const uint8_t* data, size_t len) override;
+	ISerializable* serializable() override { return this; }
 
 private:
 	struct Star {

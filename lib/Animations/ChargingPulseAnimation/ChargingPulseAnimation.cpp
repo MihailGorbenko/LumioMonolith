@@ -14,7 +14,9 @@ static inline float easeInOutCubic(float p) {
 }
 
 ChargingPulseAnimation::ChargingPulseAnimation(LedMatrix& m)
-    : AnimationBase(m, CHARGING_DEFAULT_HUE, CHARGING_DEFAULT_SAT, CHARGING_DEFAULT_VAL) {}
+    : AnimationBase(m, CHARGING_DEFAULT_HUE, CHARGING_DEFAULT_SAT, CHARGING_DEFAULT_VAL) {
+    name = CHARGINGPULSE_ANIMATION_NAME;
+}
 
 void ChargingPulseAnimation::render() {
     if (!matrix) return;
@@ -100,4 +102,17 @@ void ChargingPulseAnimation::render() {
     }
 
     matrix->show();
+}
+
+bool ChargingPulseAnimation::serialize(uint8_t* out, size_t maxLen) const {
+    if (!out || maxLen < 2) return false;
+    out[0] = hue;
+    out[1] = sat;
+    return true;
+}
+
+bool ChargingPulseAnimation::deserialize(const uint8_t* data, size_t len) {
+    if (!data || len < 2) return false;
+    setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
+    return true;
 }

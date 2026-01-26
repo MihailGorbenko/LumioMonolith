@@ -3,6 +3,7 @@
 
 PlasmaAnimation::PlasmaAnimation(LedMatrix& m)
 	: AnimationBase(m, PLASMA_DEFAULT_HUE, PLASMA_DEFAULT_SAT, PLASMA_DEFAULT_VAL) {
+    name = PLASMA_ANIMATION_NAME;
 }
 
 void PlasmaAnimation::render() {
@@ -33,4 +34,17 @@ void PlasmaAnimation::render() {
 	}
 
 	matrix->show();
+}
+
+bool PlasmaAnimation::serialize(uint8_t* out, size_t maxLen) const {
+	if (!out || maxLen < 2) return false;
+	out[0] = hue;
+	out[1] = sat;
+	return true;
+}
+
+bool PlasmaAnimation::deserialize(const uint8_t* data, size_t len) {
+	if (!data || len < 2) return false;
+	setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
+	return true;
 }

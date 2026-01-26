@@ -9,7 +9,7 @@
 
 class RotaryEncoder {
 public:
-    enum Event { PRESS_START, PRESS_END, INCREMENT, DECREMENT };
+    enum Event { NONE, PRESS_START, PRESS_END, INCREMENT, DECREMENT };
 
     // Интерфейс подписчика
     class IEncoderListener {

@@ -3,7 +3,9 @@
 
 CenterPulseAnimation::CenterPulseAnimation(LedMatrix& m)
         : AnimationBase(m, CENTERPULSE_DEFAULT_HUE, CENTERPULSE_DEFAULT_SAT, CENTERPULSE_DEFAULT_VAL),
-            speedDiv(6) {}
+            speedDiv(6) {
+    name = CENTERPULSE_ANIMATION_NAME;
+}
 
 void CenterPulseAnimation::setSpeedDiv(uint8_t div) { speedDiv = (div == 0) ? 1 : div; }
 
@@ -44,4 +46,17 @@ void CenterPulseAnimation::render() {
         }
     }
     matrix->show();
+}
+
+bool CenterPulseAnimation::serialize(uint8_t* out, size_t maxLen) const {
+    if (!out || maxLen < 2) return false;
+    out[0] = hue;
+    out[1] = sat;
+    return true;
+}
+
+bool CenterPulseAnimation::deserialize(const uint8_t* data, size_t len) {
+    if (!data || len < 2) return false;
+    setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
+    return true;
 }

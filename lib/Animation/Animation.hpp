@@ -1,7 +1,7 @@
 #ifndef ANIMATION_HPP
 #define ANIMATION_HPP
 #include <Arduino.h>
-#include "../Persistant/Persistant.hpp"
+#include "../StorageManager/Serializable.hpp"
 #include "../LedMatrix/LedMatrix.hpp"
 
 // Master default value for all animations (master brightness controls final brightness)
@@ -9,7 +9,7 @@
 #define ANIMATION_DEFAULT_VAL 255
 #endif
 
-class AnimationBase : public IPersistant {
+class AnimationBase {
 protected:
 	LedMatrix* matrix;
 	uint8_t hue;
@@ -33,7 +33,6 @@ public:
 	}
 
 	// установить/получить читаемое имя анимации
-	void setName(const char* n) { name = n; }
 	const char* getName() const { return name ? name : "Unnamed"; }
 
 	// вызывается контроллером при активации анимации (переключение/включение)
@@ -42,9 +41,9 @@ public:
 	// наследники реализуют логику анимации в update()
 	virtual void render() = 0;
 
-	// соответствие интерфейсу IPersistant: loadFromNVS
-	bool saveToNVS(const char* key) override;
-	bool loadFromNVS(const char* key) override;
+
+	// Опционально: сериализация через интерфейс (по умолчанию не поддерживается)
+	virtual ISerializable* serializable() { return nullptr; }
 };
 
 #endif // ANIMATION_HPP

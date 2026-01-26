@@ -4,6 +4,7 @@
 MatrixCodeRainAnimation::MatrixCodeRainAnimation(LedMatrix& m)
         : AnimationBase(m, MATRIX_RAIN_DEFAULT_HUE, MATRIX_RAIN_DEFAULT_SAT, MATRIX_RAIN_DEFAULT_VAL),
             tailLen(1), numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(50) {
+    name = MATRIXCODERAIN_ANIMATION_NAME;
     int w = m.getWidth();
     int h = m.getHeight();
     // обычная логика: колонки = ширина, строки = высота
@@ -70,4 +71,17 @@ void MatrixCodeRainAnimation::render() {
     }
 
     matrix->show();
+}
+
+bool MatrixCodeRainAnimation::serialize(uint8_t* out, size_t maxLen) const {
+    if (!out || maxLen < 2) return false;
+    out[0] = hue;
+    out[1] = sat;
+    return true;
+}
+
+bool MatrixCodeRainAnimation::deserialize(const uint8_t* data, size_t len) {
+    if (!data || len < 2) return false;
+    setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
+    return true;
 }

@@ -3,7 +3,9 @@
 #include <FastLED.h>
 
 ReactorTurbinesAnimation::ReactorTurbinesAnimation(LedMatrix& m)
-    : AnimationBase(m, REACTOR_DEFAULT_HUE, REACTOR_DEFAULT_SAT, REACTOR_DEFAULT_VAL) {}
+    : AnimationBase(m, REACTOR_DEFAULT_HUE, REACTOR_DEFAULT_SAT, REACTOR_DEFAULT_VAL) {
+    name = REACTORTURBINES_ANIMATION_NAME;
+}
 
 void ReactorTurbinesAnimation::render() {
     if (!matrix) return;
@@ -57,4 +59,17 @@ void ReactorTurbinesAnimation::render() {
     }
 
     matrix->show();
+}
+
+bool ReactorTurbinesAnimation::serialize(uint8_t* out, size_t maxLen) const {
+    if (!out || maxLen < 2) return false;
+    out[0] = hue;
+    out[1] = sat;
+    return true;
+}
+
+bool ReactorTurbinesAnimation::deserialize(const uint8_t* data, size_t len) {
+    if (!data || len < 2) return false;
+    setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
+    return true;
 }
