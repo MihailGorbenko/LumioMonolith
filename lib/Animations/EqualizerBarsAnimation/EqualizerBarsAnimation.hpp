@@ -21,7 +21,7 @@
 #define EQUALIZERBARS_ANIMATION_NAME "Equalizer Bars"
 #endif
 
-class EqualizerBarsAnimation : public AnimationBase, public ISerializable {
+class EqualizerBarsAnimation : public AnimationBase {
 public:
     explicit EqualizerBarsAnimation(LedMatrix& m);
     // configuration setters removed as unused
@@ -38,10 +38,8 @@ private:
 
     // ISerializable
 public:
-    size_t serializedSize() const override { return 2; }
-    bool serialize(uint8_t* out, size_t maxLen) const override;
-    bool deserialize(const uint8_t* data, size_t len) override;
-    ISerializable* serializable() override { return this; }
+    const char* getName() const override { return EQUALIZERBARS_ANIMATION_NAME; }
+    const char* getNvsKeyName() const override { return "equalizer"; }
 };
 
 #endif // EQUALIZER_BARS_ANIMATION_HPP

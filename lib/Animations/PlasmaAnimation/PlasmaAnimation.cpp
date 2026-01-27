@@ -2,9 +2,7 @@
 #include <FastLED.h>
 
 PlasmaAnimation::PlasmaAnimation(LedMatrix& m)
-	: AnimationBase(m, PLASMA_DEFAULT_HUE, PLASMA_DEFAULT_SAT, PLASMA_DEFAULT_VAL) {
-    name = PLASMA_ANIMATION_NAME;
-}
+	: AnimationBase(m, PLASMA_DEFAULT_HUE, PLASMA_DEFAULT_SAT) {}
 
 void PlasmaAnimation::render() {
 	if (!matrix) return;
@@ -26,25 +24,12 @@ void PlasmaAnimation::render() {
 			uint8_t p = (uint8_t)((sx + sy) >> 1);
 
 			// Hue slowly drifts, value is modulated by plasma field
-			uint8_t hOut = (uint8_t)(hue + (t32 >> 3) + (p >> 2));
+			uint8_t hOut = (uint8_t)(animCfg.hue + (t32 >> 3) + (p >> 2));
 			// allow full brightness at peaks; keep small floor of 16
-			uint8_t vOut = scale8(val, qadd8(16, p));
-			matrix->setPixelHSV(x, y, hOut, sat, vOut);
+			uint8_t vOut = scale8(ANIMATION_DEFAULT_VAL, qadd8(16, p));
+			matrix->setPixelHSV(x, y, hOut, animCfg.sat, vOut);
 		}
 	}
 
-	matrix->show();
-}
-
-bool PlasmaAnimation::serialize(uint8_t* out, size_t maxLen) const {
-	if (!out || maxLen < 2) return false;
-	out[0] = hue;
-	out[1] = sat;
-	return true;
-}
-
-bool PlasmaAnimation::deserialize(const uint8_t* data, size_t len) {
-	if (!data || len < 2) return false;
-	setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
-	return true;
+	// show() is managed by AppController
 }

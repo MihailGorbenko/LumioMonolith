@@ -74,9 +74,7 @@ void AppController::begin() {
 	if (!animations.empty()) {
 		if (currentIndex < 0 || currentIndex >= (int)animations.size()) currentIndex = 0;
 		// Load animation-specific settings via StorageManager if supported
-		if (auto s = animations[currentIndex]->serializable()) {
-			storage.loadAnimConfig(currentIndex, *s);
-		}
+		storage.loadAnimation(*animations[currentIndex]);
 		// notify animation that it's now active (for warmups, etc.)
 		animations[currentIndex]->onActivate();
 	}
@@ -286,9 +284,7 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 
 				// restore current animation settings (if any)
 				if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
-					if (auto s = animations[currentIndex]->serializable()) {
-						storage.loadAnimConfig(currentIndex, *s);
-					}
+					storage.loadAnimation(*animations[currentIndex]);
 					// notify animation that it's now active (for warmups, etc.)
 					animations[currentIndex]->onActivate();
 				}
@@ -350,9 +346,7 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 
 					currentIndex = newIndex;
 					DBG_PRINTF("[AppController] Animation changed to: %d (%s)\n", currentIndex, animations[currentIndex]->getName());
-					if (auto s = animations[currentIndex]->serializable()) {
-						storage.loadAnimConfig(currentIndex, *s);
-					}
+						storage.loadAnimation(*animations[currentIndex]);
 					animations[currentIndex]->onActivate();
 				}
 				break;
@@ -371,7 +365,7 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 				{
 					int hue = (colorStep * 256) / APP_COLOR_STEPS;
 					if (hue > 255) hue = 255;
-					animations[currentIndex]->setColorHSV((uint8_t)hue, 255, 255);
+						animations[currentIndex]->setColorHSV((uint8_t)hue, 255);
 					// mark animation config dirty for deferred save
 					if (currentIndex >= 0 && currentIndex < (int)animDirty.size()) {
 						animDirty[(size_t)currentIndex] = 1;
@@ -388,9 +382,18 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 }
 
 bool AppController::saveState() {
-	bool ok = storage.saveApp(currentIndex, brightStep);
+	// Prepare appCfg from current runtime state
+	memset(appCfg.lastAnimName, 0, sizeof(appCfg.lastAnimName));
+	if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
+		const char* key = animations[currentIndex]->getNvsKeyName();
+		if (key && key[0]) {
+			strncpy(appCfg.lastAnimName, key, sizeof(appCfg.lastAnimName) - 1);
+		}
+	}
+	appCfg.masterBrightness = (uint16_t)constrain(brightStep, 0, APP_STEPS - 1);
+	bool ok = storage.saveApp(*this);
 	if (ok) {
-		DBG_PRINTF("[NVS] State saved: anim=%d, brightness=%d\n", currentIndex, brightStep);
+		DBG_PRINTF("[NVS] State saved: animKey=%s, brightnessStep=%d\n", appCfg.lastAnimName, brightStep);
 	} else {
 		DBG_PRINTLN("[NVS] Error: Failed to save app state");
 	}
@@ -398,15 +401,25 @@ bool AppController::saveState() {
 }
 
 bool AppController::loadState() {
-	int idx = 0;
-	int bs = APP_STEPS/2;
-	bool ok = storage.loadApp(idx, bs, 0, APP_STEPS/2);
-	currentIndex = idx;
-	brightStep = bs;
-	if (currentIndex < 0) currentIndex = 0;
+	// Load via ISerializable into appCfg
+	bool ok = storage.loadApp(*this);
+	// Apply brightness
+	brightStep = (int)appCfg.masterBrightness;
 	if (brightStep < 0) brightStep = 0;
 	if (brightStep >= APP_STEPS) brightStep = APP_STEPS - 1;
-	DBG_PRINTF("[NVS] State loaded: anim=%d, brightness=%d\n", currentIndex, brightStep);
+	// Resolve animation index by key name
+	int resolved = 0;
+	if (!animations.empty() && appCfg.lastAnimName[0]) {
+		for (size_t i = 0; i < animations.size(); ++i) {
+			const char* key = animations[i]->getNvsKeyName();
+			if (key && key[0] && strncmp(key, appCfg.lastAnimName, sizeof(appCfg.lastAnimName)) == 0) {
+				resolved = (int)i;
+				break;
+			}
+		}
+	}
+	currentIndex = resolved;
+	DBG_PRINTF("[NVS] State loaded: animKey=%s -> index=%d, brightnessStep=%d\n", appCfg.lastAnimName, currentIndex, brightStep);
 	return ok;
 }
 
@@ -441,9 +454,7 @@ void AppController::flushDirty(bool force) {
 	// save animations configs
 	for (size_t i = 0; i < animDirty.size(); ++i) {
 		if ((i < animations.size()) && (animDirty[i] || force)) {
-			if (auto s = animations[i]->serializable()) {
-				storage.saveAnimConfig((int)i, *s);
-			}
+			storage.saveAnimation(*animations[i]);
 			animDirty[i] = 0;
 			did = true;
 		}
@@ -451,4 +462,41 @@ void AppController::flushDirty(bool force) {
 	if (did) {
 		animDirtySinceMs = 0;
 	}
+}
+
+// ISerializable implementation for AppController (AppCfg)
+bool AppController::serialize(uint8_t* buf, size_t len) const {
+	if (!buf || len < sizeof(AppCfg)) return false;
+	AppCfg tmp;
+	// prepare a clean struct
+	memset(tmp.lastAnimName, 0, sizeof(tmp.lastAnimName));
+	// choose key from currentIndex if available
+	if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
+		const char* key = animations[currentIndex]->getNvsKeyName();
+		if (key && key[0]) {
+			strncpy(tmp.lastAnimName, key, sizeof(tmp.lastAnimName) - 1);
+		}
+	}
+	// brightness step
+	int bs = constrain(brightStep, 0, APP_STEPS - 1);
+	tmp.masterBrightness = (uint16_t)bs;
+	memcpy(buf, &tmp, sizeof(AppCfg));
+	return true;
+}
+
+bool AppController::deserialize(const uint8_t* buf, size_t len) {
+	if (!buf || len < sizeof(AppCfg)) {
+		// fallback to defaults
+		memset(appCfg.lastAnimName, 0, sizeof(appCfg.lastAnimName));
+		appCfg.masterBrightness = (uint16_t)(APP_STEPS/2);
+		return false;
+	}
+	AppCfg tmp;
+	memcpy(&tmp, buf, sizeof(AppCfg));
+	// sanitize brightness
+	if (tmp.masterBrightness >= APP_STEPS) tmp.masterBrightness = (uint16_t)(APP_STEPS/2);
+	// ensure lastAnimName is NUL-terminated
+	tmp.lastAnimName[APP_LAST_ANIM_KEY_MAX - 1] = '\0';
+	appCfg = tmp;
+	return true;
 }

@@ -3,9 +3,7 @@
 #include <FastLED.h>
 
 ReactorTurbinesAnimation::ReactorTurbinesAnimation(LedMatrix& m)
-    : AnimationBase(m, REACTOR_DEFAULT_HUE, REACTOR_DEFAULT_SAT, REACTOR_DEFAULT_VAL) {
-    name = REACTORTURBINES_ANIMATION_NAME;
-}
+    : AnimationBase(m, REACTOR_DEFAULT_HUE, REACTOR_DEFAULT_SAT) {}
 
 void ReactorTurbinesAnimation::render() {
     if (!matrix) return;
@@ -41,35 +39,24 @@ void ReactorTurbinesAnimation::render() {
         int posLeft  = w - 1 - pos;     // moves to the left
 
         // Brightness contrast for turbine blades
-        uint8_t vBright = val;                  // leading turbine
-        uint8_t vDim    = scale8(val, REACTOR_DIM_SCALE); // trailing turbine (dimmer)
+        uint8_t vBright = ANIMATION_DEFAULT_VAL;                  // leading turbine
+        uint8_t vDim    = scale8(ANIMATION_DEFAULT_VAL, REACTOR_DIM_SCALE); // trailing turbine (dimmer)
 
         // Draw dim (left-moving) first so bright overwrites on overlap
         for (int i = 0; i < segLen; ++i) {
             int x = posLeft - i;
             while (x < 0) x += w;
             x %= w;
-            matrix->setPixelHSV(x, y, hue, sat, vDim);
+            matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, vDim);
         }
         // Draw bright (right-moving) turbine
         for (int i = 0; i < segLen; ++i) {
             int x = (posRight + i) % w;
-            matrix->setPixelHSV(x, y, hue, sat, vBright);
+            matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, vBright);
         }
     }
 
-    matrix->show();
+    // show() is managed by AppController
 }
 
-bool ReactorTurbinesAnimation::serialize(uint8_t* out, size_t maxLen) const {
-    if (!out || maxLen < 2) return false;
-    out[0] = hue;
-    out[1] = sat;
-    return true;
-}
-
-bool ReactorTurbinesAnimation::deserialize(const uint8_t* data, size_t len) {
-    if (!data || len < 2) return false;
-    setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
-    return true;
-}
+// Base class provides ISerializable

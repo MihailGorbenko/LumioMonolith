@@ -2,8 +2,7 @@
 #include <FastLED.h>
 
 StarsAnimation::StarsAnimation(LedMatrix& m)
-	: AnimationBase(m, STARS_DEFAULT_HUE, STARS_DEFAULT_SAT, STARS_DEFAULT_VAL) {
-	name = STARS_ANIMATION_NAME;
+	: AnimationBase(m, STARS_DEFAULT_HUE, STARS_DEFAULT_SAT) {
 	// вычисляем количество звёзд автоматически по размеру матрицы (~40% пикселей)
 	int w = 0, h = 0;
 	if (matrix) {
@@ -49,20 +48,7 @@ StarsAnimation::StarsAnimation(LedMatrix& m)
 	}
 }
 
-// legacy save/load removed; use ISerializable with StorageManager
-
-bool StarsAnimation::serialize(uint8_t* out, size_t maxLen) const {
-	if (!out || maxLen < 2) return false;
-	out[0] = hue;
-	out[1] = sat;
-	return true;
-}
-
-bool StarsAnimation::deserialize(const uint8_t* data, size_t len) {
-	if (!data || len < 2) return false;
-	setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
-	return true;
-}
+// Base class provides ISerializable
 
 void StarsAnimation::randomizeStar(Star& s) {
 	uint8_t w = 8;
@@ -118,7 +104,7 @@ void StarsAnimation::render() {
 		// tw is 0..255
 		uint8_t tw = sin8((uint8_t)(s.twPhase) + noise);
 		// scale tw by master val to get a target in 0..val
-		uint8_t computedTarget = scale8(tw, (uint8_t)val);
+		uint8_t computedTarget = scale8(tw, (uint8_t)ANIMATION_DEFAULT_VAL);
 		// occasionally refresh target timing
 		if (now >= s.nextChangeMillis) {
 			s.target = computedTarget;
@@ -159,14 +145,14 @@ void StarsAnimation::render() {
 		// milder twinkle modulation (slower/smoother)
 		uint8_t twMod = (uint8_t)(160 + (tw >> 3));
 		baseV = scale8(baseV, twMod);
-		uint8_t drawV = scale8((uint8_t)val, baseV);
+		uint8_t drawV = scale8((uint8_t)ANIMATION_DEFAULT_VAL, baseV);
 		if (drawV < 12) continue; // отсечём совсем слабые
 		// slight hue shift by depth for parallax color
-		uint8_t starHue = (uint8_t)(hue + (s.depth == 2 ? 0 : (s.depth == 1 ? 4 : 8)));
-		matrix->setPixelHSV(s.x, s.y, starHue, sat, drawV);
+		uint8_t starHue = (uint8_t)(animCfg.hue + (s.depth == 2 ? 0 : (s.depth == 1 ? 4 : 8)));
+	matrix->setPixelHSV(s.x, s.y, starHue, animCfg.sat, drawV);
 	}
 
 	lastMillis = now;
 
-	matrix->show();
+	// show() is managed by AppController
 }

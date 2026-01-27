@@ -20,7 +20,7 @@
 #define CENTERPULSE_ANIMATION_NAME "Center Pulse"
 #endif
 
-class CenterPulseAnimation : public AnimationBase, public ISerializable {
+class CenterPulseAnimation : public AnimationBase {
 public:
     explicit CenterPulseAnimation(LedMatrix& m);
 
@@ -30,12 +30,8 @@ public:
 private:
     uint8_t speedDiv; // time divider for sin phase
 
-    // ISerializable
-public:
-    size_t serializedSize() const override { return 2; }
-    bool serialize(uint8_t* out, size_t maxLen) const override;
-    bool deserialize(const uint8_t* data, size_t len) override;
-    ISerializable* serializable() override { return this; }
+    const char* getName() const override { return CENTERPULSE_ANIMATION_NAME; }
+    const char* getNvsKeyName() const override { return "centerpls"; }
 };
 
 #endif // CENTER_PULSE_ANIMATION_HPP

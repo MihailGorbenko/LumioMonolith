@@ -31,16 +31,13 @@
 #define ENERGYCIRCLES_ANIMATION_NAME "Energy Circles"
 #endif
 
-class EnergyCirclesAnimation : public AnimationBase, public ISerializable {
+class EnergyCirclesAnimation : public AnimationBase {
 public:
     explicit EnergyCirclesAnimation(LedMatrix& m);
     void render() override;
 
-    // ISerializable
-    size_t serializedSize() const override { return 2; }
-    bool serialize(uint8_t* out, size_t maxLen) const override;
-    bool deserialize(const uint8_t* data, size_t len) override;
-    ISerializable* serializable() override { return this; }
+    const char* getName() const override { return ENERGYCIRCLES_ANIMATION_NAME; }
+    const char* getNvsKeyName() const override { return "energy"; }
 };
 
 #endif // ENERGYCIRCLES_ANIMATION_HPP

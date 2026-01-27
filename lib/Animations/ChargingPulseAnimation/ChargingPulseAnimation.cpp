@@ -14,9 +14,7 @@ static inline float easeInOutCubic(float p) {
 }
 
 ChargingPulseAnimation::ChargingPulseAnimation(LedMatrix& m)
-    : AnimationBase(m, CHARGING_DEFAULT_HUE, CHARGING_DEFAULT_SAT, CHARGING_DEFAULT_VAL) {
-    name = CHARGINGPULSE_ANIMATION_NAME;
-}
+    : AnimationBase(m, CHARGING_DEFAULT_HUE, CHARGING_DEFAULT_SAT) {}
 
 void ChargingPulseAnimation::render() {
     if (!matrix) return;
@@ -44,15 +42,15 @@ void ChargingPulseAnimation::render() {
         globalRamp = easeInOutCubic((float)t / (float)ascendMs); // 0..1
     }
 
-    uint8_t vTopFlash = val;
+    uint8_t vTopFlash = ANIMATION_DEFAULT_VAL;
     if (inFlash) {
         // Top flash: overshoot to 255 using a smooth sin curve
         int tf = t - ascendMs; // 0..FLASH
         uint8_t f256 = (uint8_t)((uint32_t)tf * 255U / (uint32_t)CHARGING_FLASH_MS);
         uint8_t s = sin8(f256); // 0..255
         // Interpolate from normal val to 255 with sin easing
-        uint16_t add = ((uint16_t)(255 - val) * (uint16_t)s) / 255U;
-        vTopFlash = (uint8_t)min(255, (int)val + (int)add);
+        uint16_t add = ((uint16_t)(255 - ANIMATION_DEFAULT_VAL) * (uint16_t)s) / 255U;
+        vTopFlash = (uint8_t)min(255, (int)ANIMATION_DEFAULT_VAL + (int)add);
     }
 
     // Compute brightness per ring (row)
@@ -66,12 +64,12 @@ void ChargingPulseAnimation::render() {
                 float u = (float)(t - startMs) / (float)CHARGING_RING_STEP_MS; // 0..1
                 if (u < 1.0f) {
                     float e = easeInOutCubic(u);
-                    float v = (float)val * e * globalRamp; // local + global ramp
+                    float v = (float)ANIMATION_DEFAULT_VAL * e * globalRamp; // local + global ramp
                     if (v > 255.0f) v = 255.0f;
                     vOut = (uint8_t)v;
                 } else {
                     // fully lit, still scaled by global ramp to keep growing brightness
-                    float v = (float)val * globalRamp;
+                    float v = (float)ANIMATION_DEFAULT_VAL * globalRamp;
                     if (v > 255.0f) v = 255.0f;
                     vOut = (uint8_t)v;
                 }
@@ -80,7 +78,7 @@ void ChargingPulseAnimation::render() {
             }
         } else if (inFlash) {
             // During flash, keep all rings at full brightness; top flashes stronger
-            vOut = val;
+            vOut = ANIMATION_DEFAULT_VAL;
             if (y == 0) {
                 vOut = vTopFlash;
             }
@@ -90,29 +88,18 @@ void ChargingPulseAnimation::render() {
             float u = (float)tf / (float)CHARGING_FADE_MS; // 0..1
             float e = easeInOutCubic(u);
             float f = 1.0f - e;
-            vOut = (uint8_t)((float)val * f);
+            vOut = (uint8_t)((float)ANIMATION_DEFAULT_VAL * f);
         }
 
         // Draw entire ring with computed brightness
         if (vOut > 0) {
             for (int x = 0; x < w; ++x) {
-                matrix->setPixelHSV(x, y, hue, sat, vOut);
+                matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, vOut);
             }
         }
     }
 
-    matrix->show();
+    // show() is managed by AppController
 }
 
-bool ChargingPulseAnimation::serialize(uint8_t* out, size_t maxLen) const {
-    if (!out || maxLen < 2) return false;
-    out[0] = hue;
-    out[1] = sat;
-    return true;
-}
-
-bool ChargingPulseAnimation::deserialize(const uint8_t* data, size_t len) {
-    if (!data || len < 2) return false;
-    setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
-    return true;
-}
+// Base class provides ISerializable

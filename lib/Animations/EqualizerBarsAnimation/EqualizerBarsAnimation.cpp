@@ -2,10 +2,9 @@
 #include <FastLED.h>
 
 EqualizerBarsAnimation::EqualizerBarsAnimation(LedMatrix& m)
-        : AnimationBase(m, EQ_DEFAULT_HUE, EQ_DEFAULT_SAT, EQ_DEFAULT_VAL),
-                speedDiv(2), step(1), nextStepMs(0), stepPeriodMs(30),
-            numCols(0), numRows(0) {
-    name = EQUALIZERBARS_ANIMATION_NAME;
+    : AnimationBase(m, EQ_DEFAULT_HUE, EQ_DEFAULT_SAT),
+        speedDiv(2), step(1), nextStepMs(0), stepPeriodMs(30),
+        numCols(0), numRows(0) {
     int w = m.getWidth();
     int h = m.getHeight();
             numCols = min(w > 0 ? w : 1, MATRIX_WIDTH);
@@ -59,31 +58,20 @@ void EqualizerBarsAnimation::render() {
         for (int y = 0; y < numRows; ++y) {
             bool lit = (y >= (numRows - colHeight)); // bottom-up
             if (lit) {
-                if (hue > 250) {
+                if (animCfg.hue > 250) {
                     // synchronized ascending rainbow gradient by row (bottom->top) across all columns
                     int rowsRange = (numRows > 1) ? (numRows - 1) : 1;
                     uint8_t posFromBottom = (uint8_t)(numRows - 1 - y); // 0 at bottom -> rowsRange at top
                     uint8_t hOut = (uint8_t)((posFromBottom * 255) / rowsRange);
-                    matrix->setPixelHSV(x, y, hOut, 255, val);
+                    matrix->setPixelHSV(x, y, hOut, 255, ANIMATION_DEFAULT_VAL);
                 } else {
-                    matrix->setPixelHSV(x, y, hue, sat, val);
+                    matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, ANIMATION_DEFAULT_VAL);
                 }
             }
         }
     }
 
-    matrix->show();
+    // show() is managed by AppController
 }
 
-bool EqualizerBarsAnimation::serialize(uint8_t* out, size_t maxLen) const {
-    if (!out || maxLen < 2) return false;
-    out[0] = hue;
-    out[1] = sat;
-    return true;
-}
-
-bool EqualizerBarsAnimation::deserialize(const uint8_t* data, size_t len) {
-    if (!data || len < 2) return false;
-    setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
-    return true;
-}
+// Base class provides ISerializable

@@ -21,17 +21,14 @@
 #define MATRIXCODERAIN_ANIMATION_NAME "Matrix Code Rain"
 #endif
 
-class MatrixCodeRainAnimation : public AnimationBase, public ISerializable {
+class MatrixCodeRainAnimation : public AnimationBase {
 public:
     explicit MatrixCodeRainAnimation(LedMatrix& m);
     ~MatrixCodeRainAnimation() override;
     void setTailLen(uint8_t len);
     void render() override;
-    // ISerializable
-    size_t serializedSize() const override { return 2; }
-    bool serialize(uint8_t* out, size_t maxLen) const override;
-    bool deserialize(const uint8_t* data, size_t len) override;
-    ISerializable* serializable() override { return this; }
+    const char* getName() const override { return MATRIXCODERAIN_ANIMATION_NAME; }
+    const char* getNvsKeyName() const override { return "matrixrain"; }
 private:
     uint8_t tailLen;  // trail length in rows
     std::vector<int> heads; // per-column head position (y)

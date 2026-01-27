@@ -21,16 +21,12 @@
 #define RAINBOWCHASE_ANIMATION_NAME "Rainbow Chase"
 #endif
 
-class RainbowChaseAnimation : public AnimationBase, public ISerializable {
+class RainbowChaseAnimation : public AnimationBase {
 public:
 	explicit RainbowChaseAnimation(LedMatrix& m);
 	void render() override;
-
-	// ISerializable
-	size_t serializedSize() const override { return 2; }
-	bool serialize(uint8_t* out, size_t maxLen) const override;
-	bool deserialize(const uint8_t* data, size_t len) override;
-	ISerializable* serializable() override { return this; }
+	const char* getName() const override { return RAINBOWCHASE_ANIMATION_NAME; }
+	const char* getNvsKeyName() const override { return "rainbow"; }
 };
 
 #endif // RAINBOW_CHASE_ANIMATION_HPP

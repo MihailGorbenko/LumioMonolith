@@ -1,21 +1,26 @@
 #pragma once
+#include <cstddef>
 #include <Preferences.h>
 #include "Serializable.hpp"
+#include "../Animation/Animation.hpp"
 
 class StorageManager {
 public:
-    void begin(const char* ns = "app", bool readOnly = false);
-    void end();
+    
+    // App state (stored under namespace "app")
+    bool saveApp(const ISerializable& obj);     // saves under key "cfg"
+    bool loadApp(ISerializable& obj);           // loads from key "cfg"
 
-    bool saveApp(int currentIndex, int brightStep);
-    bool loadApp(int &outIndex, int &outBrightStep, int defaultIndex = 0, int defaultBright = 10);
+    // Animation configs (stored under namespace "anim") via base class
+    bool saveAnimation(AnimationBase& anim);
+    bool loadAnimation(AnimationBase& anim);
 
-    bool saveSerializable(const char* key, const ISerializable& obj);
-    bool loadSerializable(const char* key, ISerializable& obj);
-
-    bool saveAnimConfig(int index, const ISerializable& obj);
-    bool loadAnimConfig(int index, ISerializable& obj);
+    // Generic helpers (namespaced externally)
+    bool saveSerializable(const char* ns, const char* key, const ISerializable& obj);
+    bool loadSerializable(const char* ns, const char* key, ISerializable& obj);
 
 private:
     Preferences prefs;
+    static constexpr size_t SCRATCH_MAX = 64;
+    uint8_t scratch[SCRATCH_MAX];
 };

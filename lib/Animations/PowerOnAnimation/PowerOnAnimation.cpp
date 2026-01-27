@@ -37,5 +37,5 @@ void PowerOnAnimation::render() {
             }
         }
 
-        matrix->show();
+        // show() is managed by AppController
 }

@@ -54,6 +54,6 @@ void PowerOffAnimation::render() {
 		}
 	}
 
-	matrix->show();
+	// show() is managed by AppController
 }
 

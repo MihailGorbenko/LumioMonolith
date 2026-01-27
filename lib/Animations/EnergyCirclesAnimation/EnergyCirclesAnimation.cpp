@@ -2,9 +2,7 @@
 #include <math.h>
 
 EnergyCirclesAnimation::EnergyCirclesAnimation(LedMatrix& m)
-    : AnimationBase(m, ENERGY_DEFAULT_HUE, ENERGY_DEFAULT_SAT, ENERGY_DEFAULT_VAL) {
-    name = ENERGYCIRCLES_ANIMATION_NAME;
-}
+    : AnimationBase(m, ENERGY_DEFAULT_HUE, ENERGY_DEFAULT_SAT) {}
 
 void EnergyCirclesAnimation::render() {
     if (!matrix) return;
@@ -45,7 +43,7 @@ void EnergyCirclesAnimation::render() {
             startX = pos;
             for (int i = 0; i < segLen; ++i) {
                 int x = (startX + i) % w;
-                matrix->setPixelHSV(x, y, hue, sat, val);
+                matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, ANIMATION_DEFAULT_VAL);
             }
         } else {
             startX = w - 1 - pos;
@@ -53,23 +51,12 @@ void EnergyCirclesAnimation::render() {
                 int x = startX - i;
                 while (x < 0) x += w;
                 x %= w;
-                matrix->setPixelHSV(x, y, hue, sat, val);
+                matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, ANIMATION_DEFAULT_VAL);
             }
         }
     }
 
-    matrix->show();
+    // show() is managed by AppController
 }
 
-bool EnergyCirclesAnimation::serialize(uint8_t* out, size_t maxLen) const {
-    if (!out || maxLen < 2) return false;
-    out[0] = hue;
-    out[1] = sat;
-    return true;
-}
-
-bool EnergyCirclesAnimation::deserialize(const uint8_t* data, size_t len) {
-    if (!data || len < 2) return false;
-    setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
-    return true;
-}
+// Base class provides ISerializable

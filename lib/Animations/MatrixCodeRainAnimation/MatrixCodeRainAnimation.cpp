@@ -2,9 +2,8 @@
 #include <FastLED.h>
 
 MatrixCodeRainAnimation::MatrixCodeRainAnimation(LedMatrix& m)
-        : AnimationBase(m, MATRIX_RAIN_DEFAULT_HUE, MATRIX_RAIN_DEFAULT_SAT, MATRIX_RAIN_DEFAULT_VAL),
-            tailLen(1), numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(50) {
-    name = MATRIXCODERAIN_ANIMATION_NAME;
+    : AnimationBase(m, MATRIX_RAIN_DEFAULT_HUE, MATRIX_RAIN_DEFAULT_SAT),
+        tailLen(1), numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(50) {
     int w = m.getWidth();
     int h = m.getHeight();
     // обычная логика: колонки = ширина, строки = высота
@@ -65,23 +64,12 @@ void MatrixCodeRainAnimation::render() {
             int y = head - t;
             if (y < 0) y += numRows; // wrap around
             if (y >= numRows) continue;
-            uint8_t vpix = (t == 0) ? val : scale8(val, 180); // slight brightness gap for tail
-            matrix->setPixelHSV(x, y, hue, sat, vpix);
+            uint8_t vpix = (t == 0) ? ANIMATION_DEFAULT_VAL : scale8(ANIMATION_DEFAULT_VAL, 180); // slight brightness gap for tail
+            matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, vpix);
         }
     }
 
-    matrix->show();
+    // show() is managed by AppController
 }
 
-bool MatrixCodeRainAnimation::serialize(uint8_t* out, size_t maxLen) const {
-    if (!out || maxLen < 2) return false;
-    out[0] = hue;
-    out[1] = sat;
-    return true;
-}
-
-bool MatrixCodeRainAnimation::deserialize(const uint8_t* data, size_t len) {
-    if (!data || len < 2) return false;
-    setColorHSV(data[0], data[1], ANIMATION_DEFAULT_VAL);
-    return true;
-}
+// Base class provides ISerializable
