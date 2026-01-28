@@ -2,8 +2,8 @@
 #define CENTER_PULSE_ANIMATION_HPP
 
 #include <Arduino.h>
-#include "../Animation/Animation.hpp"
-#include "../StorageManager/Serializable.hpp"
+#include "../../Animation/Animation.hpp"
+#include "../../StorageManager/Serializable.hpp"
 
 #ifndef CENTERPULSE_DEFAULT_HUE
 #define CENTERPULSE_DEFAULT_HUE 170 // blue
@@ -22,10 +22,10 @@
 
 class CenterPulseAnimation : public AnimationBase {
 public:
-    explicit CenterPulseAnimation(LedMatrix& m);
+    explicit CenterPulseAnimation(uint16_t id);
 
     void setSpeedDiv(uint8_t div);   // smaller = faster
-    void render() override;
+    void render(LedMatrix& m) override;
 
 private:
     uint8_t speedDiv; // time divider for sin phase

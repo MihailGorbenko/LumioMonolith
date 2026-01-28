@@ -1,16 +1,15 @@
 #include "SparkleWaveAnimation.hpp"
 #include <FastLED.h>
 
-SparkleWaveAnimation::SparkleWaveAnimation(LedMatrix& m)
-		: AnimationBase(m, SPARKLEWAVE_DEFAULT_HUE, SPARKLEWAVE_DEFAULT_SAT),
+SparkleWaveAnimation::SparkleWaveAnimation(uint16_t id)
+		: AnimationBase(SPARKLEWAVE_DEFAULT_HUE, id),
 			sparkleChance(28) {}
 
-void SparkleWaveAnimation::render() {
-	if (!matrix) return;
-	matrix->clear();
+void SparkleWaveAnimation::render(LedMatrix& m) {
+	m.clear();
 
-	int w = matrix->width();
-	int hgt = matrix->height();
+	int w = m.getWidth();
+	int hgt = m.getHeight();
 	if (w <= 0) w = 1;
 	if (hgt <= 0) hgt = 1;
 
@@ -32,7 +31,7 @@ void SparkleWaveAnimation::render() {
 			uint8_t vOut = (hgt >= 2) ? ((y == 0) ? vWave : scale8(vWave, 200)) : vWave;
 			// Occasional sparkle boost without per-pixel RNG
 			if (sparkleBoost) vOut = qadd8(vOut, sparkleBoost);
-			matrix->setPixelHSV(x, y, hOut, animCfg.sat, vOut);
+			m.setPixelHSV(x, y, hOut, ANIMATION_DEFAULT_SAT, vOut);
 		}
 	}
 

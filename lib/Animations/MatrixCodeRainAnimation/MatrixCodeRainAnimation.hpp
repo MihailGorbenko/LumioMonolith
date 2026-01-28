@@ -23,10 +23,10 @@
 
 class MatrixCodeRainAnimation : public AnimationBase {
 public:
-    explicit MatrixCodeRainAnimation(LedMatrix& m);
+    explicit MatrixCodeRainAnimation(uint16_t id);
     ~MatrixCodeRainAnimation() override;
     void setTailLen(uint8_t len);
-    void render() override;
+    void render(LedMatrix& m) override;
     const char* getName() const override { return MATRIXCODERAIN_ANIMATION_NAME; }
     const char* getNvsKeyName() const override { return "matrixrain"; }
 private:

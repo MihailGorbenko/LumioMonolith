@@ -3,8 +3,8 @@
 
 #include <Arduino.h>
 #include <vector>
-#include "../Animation/Animation.hpp"
-#include "../StorageManager/Serializable.hpp"
+#include "../../Animation/Animation.hpp"
+#include "../../StorageManager/Serializable.hpp"
 
 // default configuration (можно переопределить в проекте перед инклюдом)
 #ifndef STARS_DEFAULT_HUE
@@ -28,18 +28,18 @@
 
 class StarsAnimation : public AnimationBase {
 public:
-	// принимает только матрицу; прочие параметры — дефайнами
-	explicit StarsAnimation(LedMatrix& m);
+	// default hue comes from defines; id is provided by main
+	explicit StarsAnimation(uint16_t id);
 
 	// (use base `setColorHSV`)
 
-	// отрисовка кадра — вызывать часто из loop()
-	void render() override;
+	// render one frame; controller passes matrix
+	void render(LedMatrix& m) override;
 
 	// (legacy NVS helpers removed; use ISerializable via StorageManager)
 
     const char* getName() const override { return STARS_ANIMATION_NAME; }
-    const char* getNvsKeyName() const override { return "stars"; }
+	const char* getNvsKeyName() const override { return "stars"; }
 
 private:
 	struct Star {
@@ -64,7 +64,7 @@ private:
 	
 
 	// вспомогательные
-	void randomizeStar(Star& s);
+	void randomizeStar(Star& s, int w, int h);
 };
 
 #endif // STARS_ANIMATION_HPP

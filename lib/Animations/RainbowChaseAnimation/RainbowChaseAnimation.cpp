@@ -1,15 +1,14 @@
 #include "RainbowChaseAnimation.hpp"
 #include <FastLED.h>
 
-RainbowChaseAnimation::RainbowChaseAnimation(LedMatrix& m)
-	: AnimationBase(m, RAINBOWCHASE_DEFAULT_HUE, RAINBOWCHASE_DEFAULT_SAT) {}
+RainbowChaseAnimation::RainbowChaseAnimation(uint16_t id)
+	: AnimationBase(RAINBOWCHASE_DEFAULT_HUE, id) {}
 
-void RainbowChaseAnimation::render() {
-	if (!matrix) return;
-	matrix->clear();
+void RainbowChaseAnimation::render(LedMatrix& m) {
+	m.clear();
 
-	int w = matrix->width();
-	int hgt = matrix->height();
+	int w = m.getWidth();
+	int hgt = m.getHeight();
 	if (w <= 0) w = 1;
 	if (hgt <= 0) hgt = 1;
 
@@ -21,7 +20,7 @@ void RainbowChaseAnimation::render() {
 		uint8_t xHue = (uint8_t)(animCfg.hue + t + (uint8_t)((x * 256) / max(1, w)));
 		for (int y = 0; y < hgt; ++y) {
 			uint8_t rowShift = (uint8_t)(y * 24);
-			matrix->setPixelHSV(x, y, (uint8_t)(xHue + rowShift), animCfg.sat, ANIMATION_DEFAULT_VAL);
+			m.setPixelHSV(x, y, (uint8_t)(xHue + rowShift), ANIMATION_DEFAULT_SAT, ANIMATION_DEFAULT_VAL);
 		}
 	}
 

@@ -2,8 +2,8 @@
 #define SEGMENT_RUNNER_ANIMATION_HPP
 
 #include <Arduino.h>
-#include "../Animation/Animation.hpp"
-#include "../StorageManager/Serializable.hpp"
+#include "../../Animation/Animation.hpp"
+#include "../../StorageManager/Serializable.hpp"
 
 #ifndef SEGMENTRUNNER_DEFAULT_HUE
 #define SEGMENTRUNNER_DEFAULT_HUE 170 // blue
@@ -22,10 +22,10 @@
 
 class SegmentRunnerAnimation : public AnimationBase {
 public:
-    explicit SegmentRunnerAnimation(LedMatrix& m);
+    explicit SegmentRunnerAnimation(uint16_t id);
 
     void setStepPeriodMs(uint16_t ms);
-    void render() override;
+    void render(LedMatrix& m) override;
 
 private:
     uint16_t stepPeriodMs; // time per row change

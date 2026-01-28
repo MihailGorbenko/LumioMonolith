@@ -1,69 +1,19 @@
 #include "StarsAnimation.hpp"
 #include <FastLED.h>
 
-StarsAnimation::StarsAnimation(LedMatrix& m)
-	: AnimationBase(m, STARS_DEFAULT_HUE, STARS_DEFAULT_SAT) {
-	// вычисляем количество звёзд автоматически по размеру матрицы (~40% пикселей)
-	int w = 0, h = 0;
-	if (matrix) {
-		w = matrix->width();
-		h = matrix->height();
-	}
-	if (w <= 0) w = 8;
-	if (h <= 0) h = 8;
-	int total_pixels = w * h;
-	int autoCount = max(1, (total_pixels * 3) / 5); // ~60% пикселей
-	starCount = autoCount;
-
-	stars.reserve(starCount);
-	// Обеспечим покрытие ширины равномерно распределёнными X для части звёзд
-	int base = min(w, starCount);
-	for (int i = 0; i < base; ++i) {
-		Star s;
-		s.x = (uint8_t)((long)i * w / base);
-		s.y = (uint8_t)random(0, h);
-		s.brightness = (uint8_t)random(0, 256);
-		s.target = (uint8_t)random(0, 256);
-		s.nextChangeMillis = millis() + (unsigned long)random(400, 2200); // медленнее смена цели
-		// Параллакс: назначаем глубину и скорость
-		s.depth = (uint8_t)random(0, 3); // 0..2
-		s.xfp = ((int16_t)s.x) << 8;
-		// движение влево/вправо, ближние быстрее, но в целом медленнее
-		// make movement slower (smaller velocities) for smoother motion
-		int8_t baseV = (s.depth == 0) ? -8 : (s.depth == 1) ? -14 : -24;
-		// случайно меняем направление для разнообразия
-		if ((uint8_t)random(0, 2)) baseV = -baseV;
-		s.vfp = baseV;
-		// Плавное мерцание: индивидуальная скорость (медленная) и случайная фаза
-		s.twPhase = (uint8_t)random(0, 256);
-		// slower twinkle speeds for smoother effect
-		s.twSpeed = (uint8_t)((s.depth == 0) ? 1 : (s.depth == 1) ? 1 : 2);
-		stars.push_back(s);
-	}
-	// Остальные — случайно по всей матрице
-	for (int i = base; i < starCount; ++i) {
-		Star s;
-		randomizeStar(s);
-		stars.push_back(s);
-	}
+StarsAnimation::StarsAnimation(uint16_t id)
+	: AnimationBase(STARS_DEFAULT_HUE, id) {
+    // defer allocation to first render when matrix size is known
+    starCount = 0;
 }
 
 // Base class provides ISerializable
 
-void StarsAnimation::randomizeStar(Star& s) {
-	uint8_t w = 8;
-	uint8_t h = 8;
-	// получить реальные размеры из матрицы, если доступны
-	if (matrix) {
-		// предполагаем методы width() и height() в LedMatrix
-		w = (uint8_t)matrix->width();
-		h = (uint8_t)matrix->height();
-		// защита от нуля
-		if (w == 0) w = 8;
-		if (h == 0) h = 8;
-	}
-	s.x = random(0, w);
-	s.y = random(0, h);
+void StarsAnimation::randomizeStar(Star& s, int w, int h) {
+    if (w <= 0) w = 8;
+    if (h <= 0) h = 8;
+	s.x = random(0, (uint8_t)w);
+	s.y = random(0, (uint8_t)h);
 	s.brightness = random(0, 256);
 	s.target = random(0, 256);
 	s.nextChangeMillis = millis() + random(400, 2200); // медленнее смена цели
@@ -79,18 +29,47 @@ void StarsAnimation::randomizeStar(Star& s) {
 	s.twSpeed = (uint8_t)((s.depth == 0) ? 1 : (s.depth == 1) ? 1 : 2);
 }
 
-void StarsAnimation::render() {
+void StarsAnimation::render(LedMatrix& m) {
 	uint32_t now = millis();
 	// очистка матрицы перед рисованием (контроллер задаёт частоту вызова render)
-	if (!matrix) return;
-	matrix->clear();
+	m.clear();
 
 	// размеры для обёртки и фикс-точки
-	int w = matrix->width();
-	int h = matrix->height();
+	int w = m.getWidth();
+	int h = m.getHeight();
 	if (w <= 0) w = 8;
 	if (h <= 0) h = 8;
 	int w8 = w << 8;
+
+    // lazy init of stars for known matrix size
+    if (stars.empty()) {
+        int total_pixels = w * h;
+        int autoCount = max(1, (total_pixels * 3) / 5);
+        starCount = autoCount;
+        stars.reserve(starCount);
+        int base = min(w, starCount);
+        for (int i = 0; i < base; ++i) {
+            Star s;
+            s.x = (uint8_t)((long)i * w / base);
+            s.y = (uint8_t)random(0, h);
+            s.brightness = (uint8_t)random(0, 256);
+            s.target = (uint8_t)random(0, 256);
+            s.nextChangeMillis = millis() + (unsigned long)random(400, 2200);
+            s.depth = (uint8_t)random(0, 3);
+            s.xfp = ((int16_t)s.x) << 8;
+            int8_t baseV = (s.depth == 0) ? -8 : (s.depth == 1) ? -14 : -24;
+            if ((uint8_t)random(0, 2)) baseV = -baseV;
+            s.vfp = baseV;
+            s.twPhase = (uint8_t)random(0, 256);
+            s.twSpeed = (uint8_t)((s.depth == 0) ? 1 : (s.depth == 1) ? 1 : 2);
+            stars.push_back(s);
+        }
+        for (int i = base; i < starCount; ++i) {
+            Star s;
+            randomizeStar(s, w, h);
+            stars.push_back(s);
+        }
+    }
 
 	// dt в миллисекундах с предохранением на первый кадр
 	uint32_t dt = 0;
@@ -149,7 +128,7 @@ void StarsAnimation::render() {
 		if (drawV < 12) continue; // отсечём совсем слабые
 		// slight hue shift by depth for parallax color
 		uint8_t starHue = (uint8_t)(animCfg.hue + (s.depth == 2 ? 0 : (s.depth == 1 ? 4 : 8)));
-	matrix->setPixelHSV(s.x, s.y, starHue, animCfg.sat, drawV);
+	m.setPixelHSV(s.x, s.y, starHue, ANIMATION_DEFAULT_SAT, drawV);
 	}
 
 	lastMillis = now;

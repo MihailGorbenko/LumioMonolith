@@ -22,8 +22,8 @@
 
 class PlasmaAnimation : public AnimationBase {
 public:
-	explicit PlasmaAnimation(LedMatrix& m);
-	void render() override;
+	explicit PlasmaAnimation(uint16_t id);
+	void render(LedMatrix& m) override;
 	const char* getName() const override { return PLASMA_ANIMATION_NAME; }
 	const char* getNvsKeyName() const override { return "plasma"; }
 };

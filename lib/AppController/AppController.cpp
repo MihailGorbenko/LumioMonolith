@@ -14,9 +14,8 @@
 static const int ENC_RANGE = (ENC_MAX - ENC_MIN + 1);
 static const int ENC_HALF = (ENC_RANGE / 2);
 
-AppController::AppController(LedMatrix& m, InputManager& in)
-		: matrix(&m),
-			input(&in),
+AppController::AppController(LedMatrix& m)
+	: matrix(&m),
 			currentIndex(0),
 			mode(MODE_BRIGHTNESS),
 			appState(STATE_RUNNING),
@@ -47,9 +46,7 @@ void AppController::addAnimation(AnimationBase* a) {
 
 void AppController::begin() {
 	DBG_PRINTLN("[AppController] Initializing...");
-	if (input) input->attachListener(this);
-
-	// Encoder accel/boundaries configured in InputManager; set base value only
+	// Encoder base value
 	encBaseValue = 0;
 
 	// Построим gamma LUT размером APP_STEPS
@@ -212,7 +209,7 @@ void AppController::renderBase() {
 		case STATE_RUNNING:
 			if (!powered) return;
 			if (mode == MODE_SELECT_ANIM || mode == MODE_BRIGHTNESS || mode == MODE_COLOR) {
-				animations[currentIndex]->render();
+				animations[currentIndex]->render(*matrix);
 			}
 			return;
 	}

@@ -35,8 +35,8 @@
 
 class ChargingPulseAnimation : public AnimationBase {
 public:
-    explicit ChargingPulseAnimation(LedMatrix& m);
-    void render() override;
+    explicit ChargingPulseAnimation(uint16_t id);
+    void render(LedMatrix& m) override;
 
     const char* getName() const override { return CHARGINGPULSE_ANIMATION_NAME; }
     const char* getNvsKeyName() const override { return "charging"; }

@@ -1,7 +1,7 @@
 #include "SegmentRunnerAnimation.hpp"
 
-SegmentRunnerAnimation::SegmentRunnerAnimation(LedMatrix& m)
-    : AnimationBase(m, SEGMENTRUNNER_DEFAULT_HUE, SEGMENTRUNNER_DEFAULT_SAT),
+SegmentRunnerAnimation::SegmentRunnerAnimation(uint16_t id)
+    : AnimationBase(SEGMENTRUNNER_DEFAULT_HUE, id),
             stepPeriodMs(130) {}
 
 void SegmentRunnerAnimation::setStepPeriodMs(uint16_t ms) {
@@ -9,10 +9,9 @@ void SegmentRunnerAnimation::setStepPeriodMs(uint16_t ms) {
     stepPeriodMs = ms;
 }
 
-void SegmentRunnerAnimation::render() {
-    if (!matrix) return;
-    int w = matrix->width();
-    int h = matrix->height();
+void SegmentRunnerAnimation::render(LedMatrix& m) {
+    int w = m.getWidth();
+    int h = m.getHeight();
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
 
@@ -22,9 +21,9 @@ void SegmentRunnerAnimation::render() {
     uint32_t phase = (span > 0) ? (step % (2 * span)) : 0;
     int head = (span == 0) ? 0 : ((phase <= span) ? (int)phase : (int)(2 * span - phase));
 
-    matrix->clear();
+    m.clear();
     for (int x = 0; x < w; ++x) {
-        matrix->setPixelHSV(x, head, animCfg.hue, animCfg.sat, ANIMATION_DEFAULT_VAL);
+        m.setPixelHSV(x, head, animCfg.hue, ANIMATION_DEFAULT_SAT, ANIMATION_DEFAULT_VAL);
     }
     // show() is managed by AppController
 }

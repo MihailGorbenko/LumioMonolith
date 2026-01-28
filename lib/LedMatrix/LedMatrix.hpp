@@ -6,7 +6,7 @@
 #define MATRIX_HEIGHT 5
 #define NUM_LEDS (MATRIX_WIDTH * MATRIX_HEIGHT)
 #define DEF_BRIGHTNESS 128
-#define LED_PIN 2
+#define LED_PIN 6
 
 /// Класс управления светодиодной матрицей
 class LedMatrix {
@@ -26,11 +26,6 @@ public:
     void powerOff();
     int getWidth() const{ return m_width; };
     int getHeight() const{ return m_height; };
-    // Compatibility convenience accessors used by animations
-    int width() const { return getWidth(); }
-    int height() const { return getHeight(); }
-    // compatibility: some animations call show()
-    void show() { update(); }
     int getNumLeds() const{ return NUM_LEDS; };
     void setMasterBrightness(uint8_t b);
     void setPixelHSV(int x, int y, uint8_t h, uint8_t s, uint8_t v);

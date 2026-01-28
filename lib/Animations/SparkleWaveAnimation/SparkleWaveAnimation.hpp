@@ -22,8 +22,8 @@
 
 class SparkleWaveAnimation : public AnimationBase {
 public:
-	explicit SparkleWaveAnimation(LedMatrix& m);
-	void render() override;
+	explicit SparkleWaveAnimation(uint16_t id);
+	void render(LedMatrix& m) override;
 
 private:
 	uint8_t sparkleChance; // 0..255

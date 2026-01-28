@@ -4,7 +4,6 @@
 #include "../../src/AppConfig.hpp"
 #include "../StorageManager/StorageManager.hpp"
 #include "../RotaryEncoder/RotaryEncoder.hpp"
-#include "../InputManager/InputManager.hpp"
 #include "../LedMatrix/LedMatrix.hpp"
 #include "../Animation/Animation.hpp"
 #include "../Animations/PowerOffAnimation/PowerOffAnimation.hpp"
@@ -73,7 +72,7 @@ struct AppCfg {
 
 class AppController : public RotaryEncoder::IEncoderListener, public ISerializable {
 public:
-	explicit AppController(LedMatrix& m, InputManager& in);
+	explicit AppController(LedMatrix& m);
 
 	// добавить анимацию (в контроллере хранится указатель, владелец остаётся у вызывающего)
 	void addAnimation(AnimationBase* a);
@@ -109,7 +108,6 @@ enum AppState {
 };
 
 	LedMatrix* matrix;
-	InputManager* input;
 	std::vector<AnimationBase*> animations;
 	int currentIndex;
 

@@ -22,8 +22,8 @@
 
 class PulseWaveAnimation : public AnimationBase {
 public:
-	explicit PulseWaveAnimation(LedMatrix& m);
-	void render() override;
+	explicit PulseWaveAnimation(uint16_t id);
+	void render(LedMatrix& m) override;
 
 private:
 	uint8_t pulseRadius;  // 0..255

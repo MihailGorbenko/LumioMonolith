@@ -1,17 +1,16 @@
 #include "EnergyCirclesAnimation.hpp"
 #include <math.h>
 
-EnergyCirclesAnimation::EnergyCirclesAnimation(LedMatrix& m)
-    : AnimationBase(m, ENERGY_DEFAULT_HUE, ENERGY_DEFAULT_SAT) {}
+EnergyCirclesAnimation::EnergyCirclesAnimation(uint16_t id)
+    : AnimationBase(ENERGY_DEFAULT_HUE, id) {}
 
-void EnergyCirclesAnimation::render() {
-    if (!matrix) return;
+void EnergyCirclesAnimation::render(LedMatrix& m) {
 
-    const int w = matrix->width();
-    const int h = matrix->height();
+    const int w = m.getWidth();
+    const int h = m.getHeight();
     if (w <= 0 || h <= 0) return;
 
-    matrix->clear();
+    m.clear();
 
     // Compute time in "step units" as float for per-row speed
     const uint32_t now = millis();
@@ -43,7 +42,7 @@ void EnergyCirclesAnimation::render() {
             startX = pos;
             for (int i = 0; i < segLen; ++i) {
                 int x = (startX + i) % w;
-                matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, ANIMATION_DEFAULT_VAL);
+                m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, ANIMATION_DEFAULT_VAL);
             }
         } else {
             startX = w - 1 - pos;
@@ -51,7 +50,7 @@ void EnergyCirclesAnimation::render() {
                 int x = startX - i;
                 while (x < 0) x += w;
                 x %= w;
-                matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, ANIMATION_DEFAULT_VAL);
+                m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, ANIMATION_DEFAULT_VAL);
             }
         }
     }

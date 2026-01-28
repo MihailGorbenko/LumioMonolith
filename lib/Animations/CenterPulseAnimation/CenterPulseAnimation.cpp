@@ -1,16 +1,15 @@
 #include "CenterPulseAnimation.hpp"
 #include <FastLED.h>
 
-CenterPulseAnimation::CenterPulseAnimation(LedMatrix& m)
-        : AnimationBase(m, CENTERPULSE_DEFAULT_HUE, CENTERPULSE_DEFAULT_SAT),
+CenterPulseAnimation::CenterPulseAnimation(uint16_t id)
+    : AnimationBase(CENTERPULSE_DEFAULT_HUE, id),
             speedDiv(6) {}
 
 void CenterPulseAnimation::setSpeedDiv(uint8_t div) { speedDiv = (div == 0) ? 1 : div; }
 
-void CenterPulseAnimation::render() {
-    if (!matrix) return;
-    int w = matrix->width();
-    int h = matrix->height();
+void CenterPulseAnimation::render(LedMatrix& m) {
+    int w = m.getWidth();
+    int h = m.getHeight();
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
 
@@ -27,7 +26,7 @@ void CenterPulseAnimation::render() {
     int radius = (int)(sr / 255);
     uint8_t frac = (uint8_t)(sr % 255); // fractional part for edge blend
 
-    matrix->clear();
+    m.clear();
     for (int y = 0; y < h; ++y) {
         int d = abs(y - center);
         uint8_t vRow = 0;
@@ -40,7 +39,7 @@ void CenterPulseAnimation::render() {
             continue;
         }
         for (int x = 0; x < w; ++x) {
-            matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, vRow);
+            m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vRow);
         }
     }
     // show() is managed by AppController

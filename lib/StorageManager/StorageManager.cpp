@@ -78,13 +78,19 @@ bool StorageManager::loadSerializable(const char* ns, const char* key, ISerializ
 }
 
 bool StorageManager::saveAnimation(AnimationBase& anim) {
-    const char* key = anim.getNvsKeyName();
-    if (!key || !key[0]) return false;
-    return saveSerializable("anim", key, anim);
+    // Use ID-based key to respect NVS key length constraints
+    char keyBuf[16]; // NVS key max length is 15 chars (+ NUL)
+    anim.makeNvsKeyById(keyBuf, sizeof(keyBuf));
+    if (!keyBuf[0]) return false;
+    // Persist only the animation's config (AnimConfig implements ISerializable)
+    return saveSerializable("anim", keyBuf, anim.getConfig());
 }
 
 bool StorageManager::loadAnimation(AnimationBase& anim) {
-    const char* key = anim.getNvsKeyName();
-    if (!key || !key[0]) return false;
-    return loadSerializable("anim", key, anim);
+    // Use ID-based key to respect NVS key length constraints
+    char keyBuf[16]; // NVS key max length is 15 chars (+ NUL)
+    anim.makeNvsKeyById(keyBuf, sizeof(keyBuf));
+    if (!keyBuf[0]) return false;
+    // Load into the animation's config
+    return loadSerializable("anim", keyBuf, anim.getConfig());
 }

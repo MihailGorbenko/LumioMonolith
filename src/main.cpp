@@ -1,8 +1,6 @@
 #include <Arduino.h>
-#include <Preferences.h>
 #include "../lib/LedMatrix/LedMatrix.hpp"
 #include "../lib/RotaryEncoder/RotaryEncoder.hpp"
-#include "../lib/InputManager/InputManager.hpp"
 #include "../lib/Animations/StarsAnimation/StarsAnimation.hpp"
 #include "../lib/Animations/RainbowChaseAnimation/RainbowChaseAnimation.hpp"
 #include "../lib/Animations/PlasmaAnimation/PlasmaAnimation.hpp"
@@ -21,20 +19,23 @@
 // глобальные компоненты
 LedMatrix matrix;
 RotaryEncoder rotary;
-InputManager input(rotary);
-StarsAnimation stars(matrix);
-RainbowChaseAnimation rainbow(matrix);
-PlasmaAnimation plasma(matrix);
-SparkleWaveAnimation sparkleWave(matrix);
-PulseWaveAnimation pulseWave(matrix);
-SegmentRunnerAnimation segmentRunner(matrix);
-CenterPulseAnimation centerPulse(matrix);
-MatrixCodeRainAnimation codeRain(matrix);
-EqualizerBarsAnimation equalizerBars(matrix);
-EnergyCirclesAnimation energyCircles(matrix);
-ReactorTurbinesAnimation reactorTurbines(matrix);
-ChargingPulseAnimation chargingPulse(matrix);
-AppController app(matrix, input);
+
+// Auto-generate stable unique IDs in declaration order
+static uint16_t nextAnimId() { static uint16_t id = 1; return id++; }
+
+StarsAnimation stars(nextAnimId());
+RainbowChaseAnimation rainbow(nextAnimId());
+PlasmaAnimation plasma(nextAnimId());
+SparkleWaveAnimation sparkleWave(nextAnimId());
+PulseWaveAnimation pulseWave(nextAnimId());
+SegmentRunnerAnimation segmentRunner(nextAnimId());
+CenterPulseAnimation centerPulse(nextAnimId());
+MatrixCodeRainAnimation codeRain(nextAnimId());
+EqualizerBarsAnimation equalizerBars(nextAnimId());
+EnergyCirclesAnimation energyCircles(nextAnimId());
+ReactorTurbinesAnimation reactorTurbines(nextAnimId());
+ChargingPulseAnimation chargingPulse(nextAnimId());
+AppController app(matrix);
 
 void setup() {
 	#if DEBUG_SERIAL
@@ -46,23 +47,21 @@ void setup() {
 	Serial.println("Starting LumioMonolith...");
 	#endif
 
-	// init NVS via StorageManager once
-	app.storage.begin("app", false);
-	// init hardware
 	matrix.init();
-	// init input manager (attaches to encoder and configures it)
-	input.begin();
+	// configure rotary encoder directly
+	rotary.attachListener(&app);
+	rotary.init();
+	
 	// register animations
 	app.addAnimation(&centerPulse);
-	app.addAnimation(&segmentRunner);
-	app.addAnimation(&codeRain);
-	app.addAnimation(&stars);
-	app.addAnimation(&sparkleWave);
 	app.addAnimation(&pulseWave);
+	app.addAnimation(&segmentRunner);
 	app.addAnimation(&energyCircles);
-	app.addAnimation(&reactorTurbines);
-	app.addAnimation(&plasma);
+	app.addAnimation(&stars);
+	app.addAnimation(&codeRain);
 	app.addAnimation(&equalizerBars);
+	app.addAnimation(&plasma);
+	app.addAnimation(&reactorTurbines);
 	app.addAnimation(&chargingPulse);
 	app.addAnimation(&rainbow);
 	
@@ -76,8 +75,8 @@ void setup() {
 }
 
 void loop() {
-	// poll input manager (produces events to AppController)
-	input.update();
+	// poll rotary encoder (produces events to AppController)
+	rotary.update();
 	// update app (renders animations / handles poweroff)
 	app.update();
 }

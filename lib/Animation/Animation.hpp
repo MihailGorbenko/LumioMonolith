@@ -2,85 +2,51 @@
 #define ANIMATION_HPP
 #include <Arduino.h>
 #include <cstring>
-#include "../StorageManager/Serializable.hpp"
+#include "AnimConfig.hpp"
 #include "../LedMatrix/LedMatrix.hpp"
 
-// Master default value for all animations (master brightness controls final brightness)
+// Значение мастер-яркости для всех анимаций (финальный множитель яркости)
 #ifndef ANIMATION_DEFAULT_VAL
 #define ANIMATION_DEFAULT_VAL 255
 #endif
 
-// Структура конфигурации анимации для оттенка и насыщенности
-struct AnimCfg {
-	uint8_t hue;
-	uint8_t sat;
-	AnimCfg(uint8_t h = 0, uint8_t s = 255) : hue(h), sat(s) {}
-	inline void set(uint8_t h, uint8_t s) { hue = h; sat = s; }
-};
+// Глобальная насыщенность по умолчанию (не хранится в конфиге анимации)
+#ifndef ANIMATION_DEFAULT_SAT
+#define ANIMATION_DEFAULT_SAT 255
+#endif
 
-static_assert(sizeof(AnimCfg) == 2, "AnimCfg layout changed");
-
-class AnimationBase : public ISerializable {
+// Базовый класс анимации: хранит конфиг цвета (только оттенок); матрица передаётся в render
+class AnimationBase {
 protected:
-	LedMatrix* matrix;
-
-	// Конфигурации оттенка/насыщенности
-	AnimCfg animCfg;
-	AnimCfg defaultCfg;
+	AnimConfig animCfg;
+	uint16_t animId;
 
 public:
-	// принимает ссылку на LedMatrix и defaultColor (h,s)
-	explicit AnimationBase(LedMatrix& m, uint8_t defH = 0, uint8_t defS = 255)
-		: matrix(&m), animCfg(defH, defS), defaultCfg(defH, defS) {}
-	virtual ~AnimationBase() {}
+	// Принимает оттенок по умолчанию и идентификатор анимации (матрица передаётся в render)
+	explicit AnimationBase(uint8_t defH = 0, uint16_t id = 0);
 
-	// установить цвет в HSV (0..255), v игнорируется (val всегда 255)
-	virtual void setColorHSV(uint8_t h, uint8_t s) {
-		animCfg.set(h, s);
-	}
+	// Установить оттенок (0..255) — частый вызов, без virtual
+	inline void setHue(uint8_t h) { animCfg.setHue(h); }
 
+	// Доступ к конфигурации (хранит только оттенок)
+	inline const AnimConfig& getConfig() const { return animCfg; }
+
+	// Получить ID анимации
+	inline uint16_t getId() const { return animId; }
 
 	// Имя анимации определяется в подклассах (базовый дефолт)
-	virtual const char* getName() const { return "Unnamed"; }
+	virtual const char* getName() const = 0;
 
-	// Ключ NVS определяется в подклассах (базовый дефолт: нет ключа)
-	virtual const char* getNvsKeyName() const { return nullptr; }
+	// Формирует краткий ключ NVS по ID (формат: "a<id>")
+	// Гарантированно укладывается в лимит NVS (<=15 символов),
+	// записывает NUL-терминированную строку в out.
+	void makeNvsKeyById(char* out, size_t outSize) const;
 
-	// вызывается контроллером при активации анимации (переключение/включение)
-	virtual void onActivate() {}
+	// Вызывается контроллером при активации анимации (переключение/включение)
+	virtual void onActivate();
 
-	// наследники реализуют логику анимации в render()
-	virtual void render() = 0;
-
-	// ISerializable: сериализация структуры AnimCfg (hue, sat)
-	size_t serializedSize() const override {
-		return sizeof(AnimCfg);
-	}
-
-	bool serialize(uint8_t* buf, size_t len) const override {
-		if (!buf || len < sizeof(AnimCfg)) return false;
-		memcpy(buf, &animCfg, sizeof(AnimCfg));
-		return true;
-	}
-
-	bool deserialize(const uint8_t* buf, size_t len) override {
-		if (!buf || len < sizeof(AnimCfg)) {
-			// Ошибка буфера/длины — применяем дефолт
-			setColorHSV(defaultCfg.hue, defaultCfg.sat);
-			return false;
-		}
-		AnimCfg temp;
-		memcpy(&temp, buf, sizeof(AnimCfg));
-		// Валидация значений: насыщенность не должна быть 0 (полностью бесцветно)
-		if (temp.sat == 0) {
-			setColorHSV(defaultCfg.hue, defaultCfg.sat);
-			return false;
-		}
-		setColorHSV(temp.hue, temp.sat);
-		return true;
-	}
-
+	// Наследники реализуют логику анимации; матрица передаётся параметром
+	virtual void render(LedMatrix& m) = 0;
 
 };
-
 #endif // ANIMATION_HPP

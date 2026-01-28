@@ -7,6 +7,22 @@
 #define ROTARY_DT_PIN 3
 #define ROTARY_SW_PIN 5
 
+// Encoder defaults (can be overridden before including this header)
+#ifndef ENC_MIN
+#define ENC_MIN -32768
+#endif
+#ifndef ENC_MAX
+#define ENC_MAX 32767
+#endif
+
+// Encoder acceleration thresholds (ms)
+#ifndef ENCODER_ACCEL_THRESH_SLOW
+#define ENCODER_ACCEL_THRESH_SLOW 100
+#endif
+#ifndef ENCODER_ACCEL_THRESH_FAST
+#define ENCODER_ACCEL_THRESH_FAST 40
+#endif
+
 class RotaryEncoder {
 public:
     enum Event { NONE, PRESS_START, PRESS_END, INCREMENT, DECREMENT };
@@ -22,7 +38,6 @@ public:
     void update();         
     void attachListener(IEncoderListener* l);
     void detachListener(IEncoderListener* l);
-    void setSteps(int steps);
     void setValue(int v);
     void setBoundaries(int minV, int maxV, bool wrap);
 

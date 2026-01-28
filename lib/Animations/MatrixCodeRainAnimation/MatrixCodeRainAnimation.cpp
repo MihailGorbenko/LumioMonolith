@@ -1,11 +1,11 @@
 #include "MatrixCodeRainAnimation.hpp"
 #include <FastLED.h>
 
-MatrixCodeRainAnimation::MatrixCodeRainAnimation(LedMatrix& m)
-    : AnimationBase(m, MATRIX_RAIN_DEFAULT_HUE, MATRIX_RAIN_DEFAULT_SAT),
+MatrixCodeRainAnimation::MatrixCodeRainAnimation(uint16_t id)
+    : AnimationBase(MATRIX_RAIN_DEFAULT_HUE, id),
         tailLen(1), numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(50) {
-    int w = m.getWidth();
-    int h = m.getHeight();
+    int w = 0;
+    int h = 0;
     // обычная логика: колонки = ширина, строки = высота
     numCols = w;
     numRows = h;
@@ -34,10 +34,9 @@ void MatrixCodeRainAnimation::setTailLen(uint8_t len) {
     tailLen = (len == 0) ? 1 : (uint8_t)min<uint8_t>(len, maxTail);
 }
 
-void MatrixCodeRainAnimation::render() {
-    if (!matrix) return;
-    int w = matrix->width();
-    int h = matrix->height();
+void MatrixCodeRainAnimation::render(LedMatrix& m) {
+    int w = m.getWidth();
+    int h = m.getHeight();
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
 
@@ -56,7 +55,7 @@ void MatrixCodeRainAnimation::render() {
         }
     }
 
-    matrix->clear();
+    m.clear();
     // вертикальный дождь сверху вниз: капли через столбец (чистый цвет)
     for (int x = 0; x < numCols; x += 2) {
         int head = heads[x];
@@ -65,7 +64,7 @@ void MatrixCodeRainAnimation::render() {
             if (y < 0) y += numRows; // wrap around
             if (y >= numRows) continue;
             uint8_t vpix = (t == 0) ? ANIMATION_DEFAULT_VAL : scale8(ANIMATION_DEFAULT_VAL, 180); // slight brightness gap for tail
-            matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, vpix);
+            m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vpix);
         }
     }
 

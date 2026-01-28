@@ -1,16 +1,16 @@
 #include "PulseWaveAnimation.hpp"
 #include <FastLED.h>
 
-PulseWaveAnimation::PulseWaveAnimation(LedMatrix& m)
-	: AnimationBase(m, PULSEWAVE_DEFAULT_HUE, PULSEWAVE_DEFAULT_SAT),
+
+PulseWaveAnimation::PulseWaveAnimation(uint16_t id)
+	: AnimationBase(PULSEWAVE_DEFAULT_HUE, id),
 	  pulseRadius(0) {}
 
-void PulseWaveAnimation::render() {
-	if (!matrix) return;
-	matrix->clear();
+void PulseWaveAnimation::render(LedMatrix& m) {
+		m.clear();
 
-	int w = matrix->width();
-	int hgt = matrix->height();
+		int w = m.getWidth();
+		int hgt = m.getHeight();
 	if (w <= 0) w = 1;
 	if (hgt <= 0) hgt = 1;
 
@@ -32,7 +32,7 @@ void PulseWaveAnimation::render() {
 
 		for (int y = 0; y < hgt; ++y) {
 			uint8_t hOut = (uint8_t)(animCfg.hue + (y == 0 ? 0 : 16));  // slight hue shift per row
-			matrix->setPixelHSV(x, y, hOut, animCfg.sat, vOut);
+			m.setPixelHSV(x, y, hOut, ANIMATION_DEFAULT_SAT, vOut);
 		}
 	}
 

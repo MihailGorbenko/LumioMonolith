@@ -13,14 +13,13 @@ static inline float easeInOutCubic(float p) {
     }
 }
 
-ChargingPulseAnimation::ChargingPulseAnimation(LedMatrix& m)
-    : AnimationBase(m, CHARGING_DEFAULT_HUE, CHARGING_DEFAULT_SAT) {}
+ChargingPulseAnimation::ChargingPulseAnimation(uint16_t id)
+    : AnimationBase(CHARGING_DEFAULT_HUE, id) {}
 
-void ChargingPulseAnimation::render() {
-    if (!matrix) return;
+void ChargingPulseAnimation::render(LedMatrix& m) {
 
-    const int w = matrix->width();
-    const int h = matrix->height();
+    const int w = m.getWidth();
+    const int h = m.getHeight();
     if (w <= 0 || h <= 0) return;
 
     const uint32_t now = millis();
@@ -29,7 +28,7 @@ void ChargingPulseAnimation::render() {
     const int cycleMs  = ascendMs + CHARGING_FLASH_MS + CHARGING_FADE_MS;
     const int t        = (int)(now % (uint32_t)cycleMs);
 
-    matrix->clear();
+    m.clear();
 
     // Determine phase
     const bool inAscend = (t < ascendMs);
@@ -94,7 +93,7 @@ void ChargingPulseAnimation::render() {
         // Draw entire ring with computed brightness
         if (vOut > 0) {
             for (int x = 0; x < w; ++x) {
-                matrix->setPixelHSV(x, y, animCfg.hue, animCfg.sat, vOut);
+                m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vOut);
             }
         }
     }
