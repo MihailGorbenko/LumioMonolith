@@ -1,4 +1,4 @@
-#include "AppController.hpp"
+#include "AppManager.hpp"
 
 #if DEBUG_SERIAL
 #define DBG_PRINT(x) Serial.print(x)
@@ -14,7 +14,7 @@
 static const int ENC_RANGE = (ENC_MAX - ENC_MIN + 1);
 static const int ENC_HALF = (ENC_RANGE / 2);
 
-AppController::AppController(LedMatrix& m)
+AppManager::AppManager(LedMatrix& m)
 	: matrix(&m),
 			currentIndex(0),
 			mode(MODE_BRIGHTNESS),
@@ -38,14 +38,14 @@ AppController::AppController(LedMatrix& m)
 	frameIntervalMs = interval;
 }
 
-void AppController::addAnimation(AnimationBase* a) {
+void AppManager::addAnimation(AnimationBase* a) {
 	if (!a) return;
 	animations.push_back(a);
 	animDirty.push_back(0);
 }
 
-void AppController::begin() {
-	DBG_PRINTLN("[AppController] Initializing...");
+void AppManager::begin() {
+	DBG_PRINTLN("[AppManager] Initializing...");
 	// Encoder base value
 	encBaseValue = 0;
 
@@ -62,9 +62,9 @@ void AppController::begin() {
 	loadState();
 	applyMasterBrightness();
 	if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
-		DBG_PRINTF("[AppController] Loaded animation index: %d (%s), brightness: %d\n", currentIndex, animations[currentIndex]->getName(), brightStep);
+		DBG_PRINTF("[AppManager] Loaded animation index: %d (%s), brightness: %d\n", currentIndex, animations[currentIndex]->getName(), brightStep);
 	} else {
-		DBG_PRINTF("[AppController] Loaded animation index: %d, brightness: %d\n", currentIndex, brightStep);
+		DBG_PRINTF("[AppManager] Loaded animation index: %d, brightness: %d\n", currentIndex, brightStep);
 	}
 
     
@@ -75,12 +75,12 @@ void AppController::begin() {
 		// notify animation that it's now active (for warmups, etc.)
 		animations[currentIndex]->onActivate();
 	}
-	DBG_PRINTLN("[AppController] Initialization complete");
+	DBG_PRINTLN("[AppManager] Initialization complete");
 	lastActivityMillis = millis();
 	appState = powered ? STATE_RUNNING : STATE_POWER_OFF;
 }
 
-void AppController::update() {
+void AppManager::update() {
 	unsigned long now = millis();
 
 	// 1) Input
@@ -107,13 +107,13 @@ void AppController::update() {
 	}
 }
 
-void AppController::updateInput(unsigned long now) {
+void AppManager::updateInput(unsigned long now) {
 	// В текущей архитектуре ввод приходит через onEvent().
 	// Здесь можно добавить polling других входов (например, кнопки/датчики), если появятся.
 	(void)now;
 }
 
-void AppController::updateState(unsigned long now) {
+void AppManager::updateState(unsigned long now) {
 	// Обработка удержания кнопки для выключения — без блокирующих return
 	overlayPowerOffActive = false;
 	overlayPowerOnActive = false;
@@ -126,7 +126,7 @@ void AppController::updateState(unsigned long now) {
 			powered = false;
 			mode = MODE_POWEROFF;
 			saveState();
-			DBG_PRINTLN("[AppController] POWERED OFF - state saved to NVS");
+			DBG_PRINTLN("[AppManager] POWERED OFF - state saved to NVS");
 			powered_off_shown = false;
 			needClearOnce = true; // очистить при первом рендере после выключения
 			overlayPowerOffActive = false; // оверлей выключения более не нужен
@@ -169,7 +169,7 @@ void AppController::updateState(unsigned long now) {
 	// Автопереход в режим яркости при простое
 	if ((mode == MODE_SELECT_ANIM || mode == MODE_COLOR) && (now - lastActivityMillis >= APP_IDLE_TIMEOUT_MS)) {
 		mode = MODE_BRIGHTNESS;
-		DBG_PRINTLN("[AppController] Auto-switch to BRIGHTNESS due to inactivity");
+		DBG_PRINTLN("[AppManager] Auto-switch to BRIGHTNESS due to inactivity");
 		lastActivityMillis = now;
 
 		// Если питание включено и нет оверлеев — обычная работа
@@ -189,7 +189,7 @@ void AppController::updateState(unsigned long now) {
 	}
 }
 
-void AppController::renderBase() {
+void AppManager::renderBase() {
 	if (!matrix) return;
 
 	if (!powered) {
@@ -215,7 +215,7 @@ void AppController::renderBase() {
 	}
 }
 
-void AppController::renderOverlay() {
+void AppManager::renderOverlay() {
 	if (!matrix) return;
 
 	// Оверлей выключения имеет приоритет и выводится поверх (с очисткой)
@@ -240,7 +240,7 @@ void AppController::renderOverlay() {
 	}
 }
 
-void AppController::showFrame() {
+void AppManager::showFrame() {
 	if (!matrix) return;
 
 	if (needClearOnce) {
@@ -252,7 +252,7 @@ void AppController::showFrame() {
 	matrix->show();
 }
 
-void AppController::onEvent(RotaryEncoder::Event ev, int value) {
+void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
 	// register user interaction for idle timeout
 	lastActivityMillis = millis();
 	if (ev == RotaryEncoder::PRESS_START) {
@@ -277,7 +277,7 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 				}
 				applyMasterBrightness();
 				mode = MODE_BRIGHTNESS;
-				DBG_PRINTLN("[AppController] POWERED ON - state restored");
+				DBG_PRINTLN("[AppManager] POWERED ON - state restored");
 
 				// restore current animation settings (if any)
 				if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
@@ -301,16 +301,16 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 		// short press: cycle modes (Brightness -> Select Animation -> Color)
 		if (mode == MODE_COLOR) {
 			mode = MODE_BRIGHTNESS;
-			DBG_PRINTLN("[AppController] Mode: BRIGHTNESS");
+			DBG_PRINTLN("[AppManager] Mode: BRIGHTNESS");
 		} else if (mode == MODE_BRIGHTNESS) {
 			mode = MODE_SELECT_ANIM;
-			DBG_PRINTLN("[AppController] Mode: SELECT_ANIM");
+			DBG_PRINTLN("[AppManager] Mode: SELECT_ANIM");
 		} else if (mode == MODE_SELECT_ANIM) {
 			mode = MODE_COLOR;
-			DBG_PRINTLN("[AppController] Mode: COLOR");
+			DBG_PRINTLN("[AppManager] Mode: COLOR");
 		} else {
 			mode = MODE_BRIGHTNESS;
-			DBG_PRINTLN("[AppController] Mode: BRIGHTNESS");
+			DBG_PRINTLN("[AppManager] Mode: BRIGHTNESS");
 		}
 
 		return;
@@ -342,7 +342,7 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 					matrix->show();
 
 					currentIndex = newIndex;
-					DBG_PRINTF("[AppController] Animation changed to: %d (%s)\n", currentIndex, animations[currentIndex]->getName());
+					DBG_PRINTF("[AppManager] Animation changed to: %d (%s)\n", currentIndex, animations[currentIndex]->getName());
 						storage.loadAnimation(*animations[currentIndex]);
 					animations[currentIndex]->onActivate();
 				}
@@ -352,7 +352,7 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 				brightStep = constrain(brightStep + delta, 0, APP_STEPS - 1);
 				applyMasterBrightness();
 				scheduleStateSave();
-				DBG_PRINTF("[AppController] Brightness: %d/%d\n", brightStep, APP_STEPS);
+				DBG_PRINTF("[AppManager] Brightness: %d/%d\n", brightStep, APP_STEPS);
 				break;
 
 			case MODE_COLOR:
@@ -368,7 +368,7 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 						animDirty[(size_t)currentIndex] = 1;
 						animDirtySinceMs = millis();
 					}
-					DBG_PRINTF("[AppController] Color (Hue): %d (%d/%d)\n", hue, colorStep, APP_COLOR_STEPS);
+					DBG_PRINTF("[AppManager] Color (Hue): %d (%d/%d)\n", hue, colorStep, APP_COLOR_STEPS);
 				}
 				break;
 
@@ -378,49 +378,46 @@ void AppController::onEvent(RotaryEncoder::Event ev, int value) {
 	}
 }
 
-bool AppController::saveState() {
-	// Prepare appCfg from current runtime state
-	memset(appCfg.lastAnimName, 0, sizeof(appCfg.lastAnimName));
-	if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
-		const char* key = animations[currentIndex]->getNvsKeyName();
-		if (key && key[0]) {
-			strncpy(appCfg.lastAnimName, key, sizeof(appCfg.lastAnimName) - 1);
-		}
-	}
+bool AppManager::saveState() {
+	// Prepare AppCfg from current runtime state
 	appCfg.masterBrightness = (uint16_t)constrain(brightStep, 0, APP_STEPS - 1);
-	bool ok = storage.saveApp(*this);
+	if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
+		appCfg.lastAnimId = animations[currentIndex]->getId();
+	} else {
+		appCfg.lastAnimId = 0;
+	}
+	bool ok = storage.saveApp(appCfg);
 	if (ok) {
-		DBG_PRINTF("[NVS] State saved: animKey=%s, brightnessStep=%d\n", appCfg.lastAnimName, brightStep);
+		DBG_PRINTF("[NVS] State saved: animId=%u, brightnessStep=%d\n", (unsigned)appCfg.lastAnimId, brightStep);
 	} else {
 		DBG_PRINTLN("[NVS] Error: Failed to save app state");
 	}
 	return ok;
 }
 
-bool AppController::loadState() {
-	// Load via ISerializable into appCfg
-	bool ok = storage.loadApp(*this);
-	// Apply brightness
+bool AppManager::loadState() {
+	// Load AppCfg via StorageManager
+	bool ok = storage.loadApp(appCfg);
+	// Apply brightness (clamp)
 	brightStep = (int)appCfg.masterBrightness;
 	if (brightStep < 0) brightStep = 0;
 	if (brightStep >= APP_STEPS) brightStep = APP_STEPS - 1;
-	// Resolve animation index by key name
+	// Resolve animation index by stored ID
 	int resolved = 0;
-	if (!animations.empty() && appCfg.lastAnimName[0]) {
+	if (!animations.empty() && appCfg.lastAnimId != 0) {
 		for (size_t i = 0; i < animations.size(); ++i) {
-			const char* key = animations[i]->getNvsKeyName();
-			if (key && key[0] && strncmp(key, appCfg.lastAnimName, sizeof(appCfg.lastAnimName)) == 0) {
+			if (animations[i]->getId() == appCfg.lastAnimId) {
 				resolved = (int)i;
 				break;
 			}
 		}
 	}
 	currentIndex = resolved;
-	DBG_PRINTF("[NVS] State loaded: animKey=%s -> index=%d, brightnessStep=%d\n", appCfg.lastAnimName, currentIndex, brightStep);
+	DBG_PRINTF("[NVS] State loaded: animId=%u -> index=%d, brightnessStep=%d\n", (unsigned)appCfg.lastAnimId, currentIndex, brightStep);
 	return ok;
 }
 
-void AppController::applyMasterBrightness() {
+void AppManager::applyMasterBrightness() {
 	int bs = constrain(brightStep, 0, APP_STEPS - 1);
 	if (!matrix) return;
 	// Gamma LUT mapping (fallback to linear if LUT not ready)
@@ -436,14 +433,14 @@ void AppController::applyMasterBrightness() {
 	matrix->setMasterBrightness(v8);
 }
 
-void AppController::flushDirty(bool force) {
+void AppManager::flushDirty(bool force) {
 	bool did = false;
 	// save app state
 	if (stateDirty || force) {
 		if (saveState()) {
-			DBG_PRINTLN("[AppController] State saved (flush)");
+			DBG_PRINTLN("[AppManager] State saved (flush)");
 		} else {
-			DBG_PRINTLN("[AppController] State save failed (flush)");
+			DBG_PRINTLN("[AppManager] State save failed (flush)");
 		}
 		stateDirty = false;
 		did = true;
@@ -461,39 +458,4 @@ void AppController::flushDirty(bool force) {
 	}
 }
 
-// ISerializable implementation for AppController (AppCfg)
-bool AppController::serialize(uint8_t* buf, size_t len) const {
-	if (!buf || len < sizeof(AppCfg)) return false;
-	AppCfg tmp;
-	// prepare a clean struct
-	memset(tmp.lastAnimName, 0, sizeof(tmp.lastAnimName));
-	// choose key from currentIndex if available
-	if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
-		const char* key = animations[currentIndex]->getNvsKeyName();
-		if (key && key[0]) {
-			strncpy(tmp.lastAnimName, key, sizeof(tmp.lastAnimName) - 1);
-		}
-	}
-	// brightness step
-	int bs = constrain(brightStep, 0, APP_STEPS - 1);
-	tmp.masterBrightness = (uint16_t)bs;
-	memcpy(buf, &tmp, sizeof(AppCfg));
-	return true;
-}
-
-bool AppController::deserialize(const uint8_t* buf, size_t len) {
-	if (!buf || len < sizeof(AppCfg)) {
-		// fallback to defaults
-		memset(appCfg.lastAnimName, 0, sizeof(appCfg.lastAnimName));
-		appCfg.masterBrightness = (uint16_t)(APP_STEPS/2);
-		return false;
-	}
-	AppCfg tmp;
-	memcpy(&tmp, buf, sizeof(AppCfg));
-	// sanitize brightness
-	if (tmp.masterBrightness >= APP_STEPS) tmp.masterBrightness = (uint16_t)(APP_STEPS/2);
-	// ensure lastAnimName is NUL-terminated
-	tmp.lastAnimName[APP_LAST_ANIM_KEY_MAX - 1] = '\0';
-	appCfg = tmp;
-	return true;
-}
+// Removed ISerializable implementation from AppManager; AppCfg handles serialization.

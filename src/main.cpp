@@ -14,28 +14,42 @@
 #include "../lib/Animations/ReactorTurbinesAnimation/ReactorTurbinesAnimation.hpp"
 #include "../lib/Animations/ChargingPulseAnimation/ChargingPulseAnimation.hpp"
 #include "../lib/Animations/PowerOffAnimation/PowerOffAnimation.hpp"
-#include "../lib/AppController/AppController.hpp"
+#include "../lib/AppManager/AppManager.hpp"
 
 // глобальные компоненты
 LedMatrix matrix;
 RotaryEncoder rotary;
 
-// Auto-generate stable unique IDs in declaration order
-static uint16_t nextAnimId() { static uint16_t id = 1; return id++; }
+// Fixed animation IDs (replaces nextAnimId)
+#define ANIM_ID_STARS 1
+#define ANIM_ID_RAINBOW 2
+#define ANIM_ID_PLASMA 3
+#define ANIM_ID_SPARKLE_WAVE 4
+#define ANIM_ID_PULSE_WAVE 5
+#define ANIM_ID_SEGMENT_RUNNER 6
+#define ANIM_ID_CENTER_PULSE 7
+#define ANIM_ID_CODE_RAIN 8
+#define ANIM_ID_EQUALIZER_BARS 9
+#define ANIM_ID_ENERGY_CIRCLES 10
+#define ANIM_ID_REACTOR_TURBINES 11
+#define ANIM_ID_CHARGING_PULSE 12
 
-StarsAnimation stars(nextAnimId());
-RainbowChaseAnimation rainbow(nextAnimId());
-PlasmaAnimation plasma(nextAnimId());
-SparkleWaveAnimation sparkleWave(nextAnimId());
-PulseWaveAnimation pulseWave(nextAnimId());
-SegmentRunnerAnimation segmentRunner(nextAnimId());
-CenterPulseAnimation centerPulse(nextAnimId());
-MatrixCodeRainAnimation codeRain(nextAnimId());
-EqualizerBarsAnimation equalizerBars(nextAnimId());
-EnergyCirclesAnimation energyCircles(nextAnimId());
-ReactorTurbinesAnimation reactorTurbines(nextAnimId());
-ChargingPulseAnimation chargingPulse(nextAnimId());
-AppController app(matrix);
+// Auto-generate stable unique IDs in declaration order
+// static uint16_t nextAnimId() { static uint16_t id = 1; return id++; }
+
+StarsAnimation stars(ANIM_ID_STARS);
+RainbowChaseAnimation rainbow(ANIM_ID_RAINBOW);
+PlasmaAnimation plasma(ANIM_ID_PLASMA);
+SparkleWaveAnimation sparkleWave(ANIM_ID_SPARKLE_WAVE);
+PulseWaveAnimation pulseWave(ANIM_ID_PULSE_WAVE);
+SegmentRunnerAnimation segmentRunner(ANIM_ID_SEGMENT_RUNNER);
+CenterPulseAnimation centerPulse(ANIM_ID_CENTER_PULSE);
+MatrixCodeRainAnimation codeRain(ANIM_ID_CODE_RAIN);
+EqualizerBarsAnimation equalizerBars(ANIM_ID_EQUALIZER_BARS);
+EnergyCirclesAnimation energyCircles(ANIM_ID_ENERGY_CIRCLES);
+ReactorTurbinesAnimation reactorTurbines(ANIM_ID_REACTOR_TURBINES);
+ChargingPulseAnimation chargingPulse(ANIM_ID_CHARGING_PULSE);
+AppManager app(matrix);
 
 void setup() {
 	#if DEBUG_SERIAL
@@ -75,7 +89,7 @@ void setup() {
 }
 
 void loop() {
-	// poll rotary encoder (produces events to AppController)
+	// poll rotary encoder (produces events to AppManager)
 	rotary.update();
 	// update app (renders animations / handles poweroff)
 	app.update();

@@ -133,5 +133,5 @@ void StarsAnimation::render(LedMatrix& m) {
 
 	lastMillis = now;
 
-	// show() is managed by AppController
+	// show() is managed by AppManager
 }

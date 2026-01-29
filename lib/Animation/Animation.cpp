@@ -5,7 +5,6 @@
 AnimationBase::AnimationBase(uint8_t defH, uint16_t id)
     : animCfg(defH), animId(id) {}
 
-void AnimationBase::onActivate() {}
 
 void AnimationBase::makeNvsKeyById(char* out, size_t outSize) const {
     if (!out || outSize == 0) return;

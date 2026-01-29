@@ -25,7 +25,7 @@ void SegmentRunnerAnimation::render(LedMatrix& m) {
     for (int x = 0; x < w; ++x) {
         m.setPixelHSV(x, head, animCfg.hue, ANIMATION_DEFAULT_SAT, ANIMATION_DEFAULT_VAL);
     }
-    // show() is managed by AppController
+    // show() is managed by AppManager
 }
 
 // Base class provides ISerializable

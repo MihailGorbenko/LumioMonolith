@@ -1,14 +1,14 @@
 #pragma once
 #include <Arduino.h>
 #include <vector>
-#include "../../src/AppConfig.hpp"
+#include "../../src/config.hpp"
 #include "../StorageManager/StorageManager.hpp"
 #include "../RotaryEncoder/RotaryEncoder.hpp"
 #include "../LedMatrix/LedMatrix.hpp"
 #include "../Animation/Animation.hpp"
 #include "../Animations/PowerOffAnimation/PowerOffAnimation.hpp"
 #include "../Animations/PowerOnAnimation/PowerOnAnimation.hpp"
-#include "../StorageManager/Serializable.hpp"
+#include "AppCfg.hpp"
 
 // DEBUG MODE - enable serial output for hardware testing (set 0 to disable)
 #ifndef DEBUG_SERIAL
@@ -58,21 +58,9 @@
 #define APP_GAMMA 2.2f
 #endif
 
-// Maximum length for stored animation key name (short NVS key), including NUL
-#ifndef APP_LAST_ANIM_KEY_MAX
-#define APP_LAST_ANIM_KEY_MAX 12
-#endif
-
-// Struct for app configuration persisted to NVS
-struct AppCfg {
-	char lastAnimName[APP_LAST_ANIM_KEY_MAX];
-	uint16_t masterBrightness; // stores brightness step 0..APP_STEPS-1
-	AppCfg() : lastAnimName{0}, masterBrightness(APP_STEPS/2) {}
-};
-
-class AppController : public RotaryEncoder::IEncoderListener, public ISerializable {
+class AppManager : public RotaryEncoder::IEncoderListener {
 public:
-	explicit AppController(LedMatrix& m);
+	explicit AppManager(LedMatrix& m);
 
 	// добавить анимацию (в контроллере хранится указатель, владелец остаётся у вызывающего)
 	void addAnimation(AnimationBase* a);
@@ -91,11 +79,6 @@ public:
 	bool loadState();
 	// Менеджер хранения состояния (NVS)
 	StorageManager storage;
-
-	// ISerializable for AppCfg
-	size_t serializedSize() const override { return sizeof(AppCfg); }
-	bool serialize(uint8_t* buf, size_t len) const override;
-	bool deserialize(const uint8_t* buf, size_t len) override;
 
 private:
 enum Mode { MODE_BRIGHTNESS = 0, MODE_SELECT_ANIM = 1, MODE_COLOR = 2, MODE_POWEROFF = 3 };
@@ -172,6 +155,6 @@ enum AppState {
 	// Сброс отложенных сохранений (app + animations)
 	void flushDirty(bool force = false);
 
-	// App configuration
+	// App configuration object
 	AppCfg appCfg;
 };

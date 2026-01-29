@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <cstdio>
 #include <vector>
-#include "../../src/AppConfig.hpp"
+#include "../../src/config.hpp"
 
 bool StorageManager::saveApp(const ISerializable& obj) {
     return saveSerializable("app", "cfg", obj);
@@ -11,6 +11,7 @@ bool StorageManager::saveApp(const ISerializable& obj) {
 bool StorageManager::loadApp(ISerializable& obj) {
     return loadSerializable("app", "cfg", obj);
 }
+
 
 bool StorageManager::saveSerializable(const char* ns, const char* key, const ISerializable& obj) {
     if (!ns || !key) return false;

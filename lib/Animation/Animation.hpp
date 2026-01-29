@@ -42,9 +42,6 @@ public:
 	// записывает NUL-терминированную строку в out.
 	void makeNvsKeyById(char* out, size_t outSize) const;
 
-	// Вызывается контроллером при активации анимации (переключение/включение)
-	virtual void onActivate();
-
 	// Наследники реализуют логику анимации; матрица передаётся параметром
 	virtual void render(LedMatrix& m) = 0;
 

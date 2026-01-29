@@ -42,5 +42,5 @@ void CenterPulseAnimation::render(LedMatrix& m) {
             m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vRow);
         }
     }
-    // show() is managed by AppController
+    // show() is managed by AppManager
 }

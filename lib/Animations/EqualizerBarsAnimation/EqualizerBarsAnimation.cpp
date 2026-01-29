@@ -70,7 +70,7 @@ void EqualizerBarsAnimation::render(LedMatrix& m) {
         }
     }
 
-    // show() is managed by AppController
+    // show() is managed by AppManager
 }
 
 // Base class provides ISerializable
