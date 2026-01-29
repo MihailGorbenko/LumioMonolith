@@ -30,6 +30,7 @@ public:
 
 	// Доступ к конфигурации (хранит только оттенок)
 	inline const AnimConfig& getConfig() const { return animCfg; }
+	inline AnimConfig& getConfig() { return animCfg; }
 
 	// Получить ID анимации
 	inline uint16_t getId() const { return animId; }
