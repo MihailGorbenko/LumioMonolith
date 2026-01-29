@@ -26,7 +26,6 @@ public:
 	explicit RainbowChaseAnimation(uint16_t id);
 	void render(LedMatrix& m) override;
 	const char* getName() const override { return RAINBOWCHASE_ANIMATION_NAME; }
-	const char* getNvsKeyName() const override { return "rainbow"; }
 };
 
 #endif // RAINBOW_CHASE_ANIMATION_HPP

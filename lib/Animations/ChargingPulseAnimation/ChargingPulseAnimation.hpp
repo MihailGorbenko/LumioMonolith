@@ -39,7 +39,6 @@ public:
     void render(LedMatrix& m) override;
 
     const char* getName() const override { return CHARGINGPULSE_ANIMATION_NAME; }
-    const char* getNvsKeyName() const override { return "charging"; }
 };
 
 #endif // CHARGING_PULSE_ANIMATION_HPP

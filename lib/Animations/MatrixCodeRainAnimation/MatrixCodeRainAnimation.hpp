@@ -28,7 +28,6 @@ public:
     void setTailLen(uint8_t len);
     void render(LedMatrix& m) override;
     const char* getName() const override { return MATRIXCODERAIN_ANIMATION_NAME; }
-    const char* getNvsKeyName() const override { return "matrixrain"; }
 private:
     uint8_t tailLen;  // trail length in rows
     std::vector<int> heads; // per-column head position (y)

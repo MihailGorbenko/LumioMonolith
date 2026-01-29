@@ -13,18 +13,14 @@ void PowerOffAnimation::setProgress(uint8_t p) {
 	progress = p;
 }
 
-	// Для PowerOff цвет фиксирован — принимаем только яркость (val).
-	(void)h; (void)s;
-	val = v;
-}
 
 
 void PowerOffAnimation::render() {
 	if (!matrix) return;
 	matrix->clear();
 
-	int w = matrix->width();
-	int h = matrix->height();
+	int w = matrix->getWidth();
+	int h = matrix->getHeight();
 	if (w <= 0) w = 1;
 	if (h <= 0) h = 1;
 

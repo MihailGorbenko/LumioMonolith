@@ -33,7 +33,6 @@ private:
     // ISerializable
 public:
     const char* getName() const override { return SEGMENTRUNNER_ANIMATION_NAME; }
-    const char* getNvsKeyName() const override { return "segrunner"; }
 };
 
 #endif // SEGMENT_RUNNER_ANIMATION_HPP

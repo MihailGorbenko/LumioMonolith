@@ -37,7 +37,6 @@ public:
     void render(LedMatrix& m) override;
 
     const char* getName() const override { return ENERGYCIRCLES_ANIMATION_NAME; }
-    const char* getNvsKeyName() const override { return "energy"; }
 };
 
 #endif // ENERGYCIRCLES_ANIMATION_HPP

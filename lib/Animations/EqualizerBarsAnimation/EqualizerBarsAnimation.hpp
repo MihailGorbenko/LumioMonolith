@@ -39,7 +39,6 @@ private:
     // ISerializable
 public:
     const char* getName() const override { return EQUALIZERBARS_ANIMATION_NAME; }
-    const char* getNvsKeyName() const override { return "equalizer"; }
 };
 
 #endif // EQUALIZER_BARS_ANIMATION_HPP

@@ -31,7 +31,6 @@ private:
 	// ISerializable
 public:
 	const char* getName() const override { return SPARKLEWAVE_ANIMATION_NAME; }
-	const char* getNvsKeyName() const override { return "sparkle"; }
 };
 
 #endif // SPARKLE_WAVE_ANIMATION_HPP

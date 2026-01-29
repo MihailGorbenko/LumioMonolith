@@ -38,8 +38,7 @@ public:
 
 	// (legacy NVS helpers removed; use ISerializable via StorageManager)
 
-    const char* getName() const override { return STARS_ANIMATION_NAME; }
-	const char* getNvsKeyName() const override { return "stars"; }
+	const char* getName() const override { return STARS_ANIMATION_NAME; }
 
 private:
 	struct Star {

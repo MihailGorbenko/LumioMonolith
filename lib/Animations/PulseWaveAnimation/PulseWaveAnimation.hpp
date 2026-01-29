@@ -31,7 +31,6 @@ private:
 	// ISerializable
 public:
 	const char* getName() const override { return PULSEWAVE_ANIMATION_NAME; }
-	const char* getNvsKeyName() const override { return "pulsewave"; }
 };
 
 #endif // PULSE_WAVE_ANIMATION_HPP

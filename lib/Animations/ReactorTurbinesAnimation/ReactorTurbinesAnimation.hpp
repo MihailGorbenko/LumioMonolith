@@ -40,7 +40,6 @@ public:
     void render(LedMatrix& m) override;
 
     const char* getName() const override { return REACTORTURBINES_ANIMATION_NAME; }
-    const char* getNvsKeyName() const override { return "reactortb"; }
 };
 
 #endif // REACTOR_TURBINES_ANIMATION_HPP

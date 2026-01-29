@@ -31,7 +31,6 @@ private:
     uint8_t speedDiv; // time divider for sin phase
 
     const char* getName() const override { return CENTERPULSE_ANIMATION_NAME; }
-    const char* getNvsKeyName() const override { return "centerpls"; }
 };
 
 #endif // CENTER_PULSE_ANIMATION_HPP
