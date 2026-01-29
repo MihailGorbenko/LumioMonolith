@@ -13,7 +13,6 @@ void PowerOffAnimation::setProgress(uint8_t p) {
 	progress = p;
 }
 
-void PowerOffAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
 	// Для PowerOff цвет фиксирован — принимаем только яркость (val).
 	(void)h; (void)s;
 	val = v;

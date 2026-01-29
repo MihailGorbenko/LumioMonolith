@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "../LedMatrix/LedMatrix.hpp"
+#include "../Animation/OverlayAnimation.hpp"
 
 // default color (можно переопределить в проекте)
 #ifndef POWEROFF_DEFAULT_HUE
@@ -15,18 +16,16 @@
 #define POWEROFF_DEFAULT_VAL 255
 #endif
 
-class PowerOffAnimation {
+class PowerOffAnimation : public OverlayAnimation {
 public:
 	explicit PowerOffAnimation(LedMatrix& m);
 
 	// контроллер устанавливает прогресс 0..255
 	void setProgress(uint8_t p);
 
-	// заглушки для установки/сохранения цвета (цвет динамический/фиксированный)
-	void setColorHSV(uint8_t h, uint8_t s, uint8_t v);
 
 	// отрисовать кадр (вызывать контроллером с нужной частотой)
-	void render();
+	void render() override;
 
 private:
 	LedMatrix* matrix;

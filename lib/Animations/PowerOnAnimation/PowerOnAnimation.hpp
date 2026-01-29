@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "../LedMatrix/LedMatrix.hpp"
+#include "../Animation/OverlayAnimation.hpp"
 
 // default color for power-on plasma effect
 #ifndef POWERON_DEFAULT_HUE
@@ -15,15 +16,14 @@
 #define POWERON_DEFAULT_VAL 255
 #endif
 
-class PowerOnAnimation {
+class PowerOnAnimation : public OverlayAnimation {
 public:
     explicit PowerOnAnimation(LedMatrix& m);
 
     // controller sets progress 0..255 over animation duration
     void setProgress(uint8_t p);
-    void setColorHSV(uint8_t h, uint8_t s, uint8_t v);
 
-    void render();
+    void render() override;
 
 private:
     LedMatrix* matrix;

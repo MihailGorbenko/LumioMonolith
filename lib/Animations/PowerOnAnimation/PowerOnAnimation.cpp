@@ -9,9 +9,7 @@ PowerOnAnimation::PowerOnAnimation(LedMatrix& m)
 
 void PowerOnAnimation::setProgress(uint8_t p) { progress = p; }
 
-void PowerOnAnimation::setColorHSV(uint8_t h, uint8_t s, uint8_t v) {
-    hue = h; sat = s; val = v;
-}
+
 
 void PowerOnAnimation::render() {
     if (!matrix) return;

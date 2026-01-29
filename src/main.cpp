@@ -14,11 +14,15 @@
 #include "../lib/Animations/ReactorTurbinesAnimation/ReactorTurbinesAnimation.hpp"
 #include "../lib/Animations/ChargingPulseAnimation/ChargingPulseAnimation.hpp"
 #include "../lib/Animations/PowerOffAnimation/PowerOffAnimation.hpp"
+#include "../lib/AnimationManager/AnimationManager.hpp"
+#include "../lib/StorageManager/StorageManager.hpp"
 #include "../lib/AppManager/AppManager.hpp"
 
 // глобальные компоненты
 LedMatrix matrix;
 RotaryEncoder rotary;
+StorageManager storage;
+AnimationManager animMgr(matrix);
 
 // Fixed animation IDs (replaces nextAnimId)
 #define ANIM_ID_STARS 1
@@ -49,7 +53,7 @@ EqualizerBarsAnimation equalizerBars(ANIM_ID_EQUALIZER_BARS);
 EnergyCirclesAnimation energyCircles(ANIM_ID_ENERGY_CIRCLES);
 ReactorTurbinesAnimation reactorTurbines(ANIM_ID_REACTOR_TURBINES);
 ChargingPulseAnimation chargingPulse(ANIM_ID_CHARGING_PULSE);
-AppManager app(matrix);
+AppManager app(animMgr, rotary, matrix, storage);
 
 void setup() {
 	#if DEBUG_SERIAL
@@ -62,22 +66,21 @@ void setup() {
 	#endif
 
 	matrix.init();
-	// configure rotary encoder directly
-	rotary.attachListener(&app);
 	rotary.init();
+	rotary.attachListener(&app);
 	
-	// register animations
-	app.addAnimation(&centerPulse);
-	app.addAnimation(&pulseWave);
-	app.addAnimation(&segmentRunner);
-	app.addAnimation(&energyCircles);
-	app.addAnimation(&stars);
-	app.addAnimation(&codeRain);
-	app.addAnimation(&equalizerBars);
-	app.addAnimation(&plasma);
-	app.addAnimation(&reactorTurbines);
-	app.addAnimation(&chargingPulse);
-	app.addAnimation(&rainbow);
+	// register animations directly via AnimationManager
+	animMgr.addAnimation(&centerPulse);
+	animMgr.addAnimation(&pulseWave);
+	animMgr.addAnimation(&segmentRunner);
+	animMgr.addAnimation(&energyCircles);
+	animMgr.addAnimation(&stars);
+	animMgr.addAnimation(&codeRain);
+	animMgr.addAnimation(&equalizerBars);
+	animMgr.addAnimation(&plasma);
+	animMgr.addAnimation(&reactorTurbines);
+	animMgr.addAnimation(&chargingPulse);
+	animMgr.addAnimation(&rainbow);
 	
 	app.begin();
 
@@ -89,8 +92,6 @@ void setup() {
 }
 
 void loop() {
-	// poll rotary encoder (produces events to AppManager)
-	rotary.update();
-	// update app (renders animations / handles poweroff)
+	// update app (polls rotary, renders animations / handles poweroff)
 	app.update();
 }

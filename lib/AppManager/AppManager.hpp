@@ -6,6 +6,7 @@
 #include "../RotaryEncoder/RotaryEncoder.hpp"
 #include "../LedMatrix/LedMatrix.hpp"
 #include "../Animation/Animation.hpp"
+#include "../AnimationManager/AnimationManager.hpp"
 #include "../Animations/PowerOffAnimation/PowerOffAnimation.hpp"
 #include "../Animations/PowerOnAnimation/PowerOnAnimation.hpp"
 #include "AppCfg.hpp"
@@ -60,10 +61,10 @@
 
 class AppManager : public RotaryEncoder::IEncoderListener {
 public:
-	explicit AppManager(LedMatrix& m);
+	explicit AppManager(AnimationManager& am, RotaryEncoder& enc, LedMatrix& m, StorageManager& st);
 
 	// добавить анимацию (в контроллере хранится указатель, владелец остаётся у вызывающего)
-	void addAnimation(AnimationBase* a);
+	// (removed) registration now done directly via AnimationManager in main
 
 	// инициализация (вызвать в setup)
 	void begin();
@@ -77,8 +78,8 @@ public:
 	// сохранение/загрузка состояния (NVS)
 	bool saveState();
 	bool loadState();
-	// Менеджер хранения состояния (NVS)
-	StorageManager storage;
+	// храним внешние зависимости
+	StorageManager* storage;
 
 private:
 enum Mode { MODE_BRIGHTNESS = 0, MODE_SELECT_ANIM = 1, MODE_COLOR = 2, MODE_POWEROFF = 3 };
@@ -91,8 +92,8 @@ enum AppState {
 };
 
 	LedMatrix* matrix;
-	std::vector<AnimationBase*> animations;
-	int currentIndex;
+	AnimationManager* animMgr;
+	RotaryEncoder* encoder;
 
 	// режимы/состояние
 	Mode mode;
@@ -148,9 +149,10 @@ enum AppState {
 	// Базовое значение энкодера для расчёта дельты (без смены границ в рантайме)
 	int encBaseValue = 0;
 
-	// Грязные флаги конфигов анимаций и время последнего изменения
-	std::vector<uint8_t> animDirty; // 0/1 per animation index
+	// Отложенное сохранение конфигов текущей анимации
+	bool animDirty = false;
 	unsigned long animDirtySinceMs = 0;
+	AnimationBase* animDirtyTarget = nullptr;
 
 	// Сброс отложенных сохранений (app + animations)
 	void flushDirty(bool force = false);

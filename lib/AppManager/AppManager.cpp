@@ -14,9 +14,11 @@
 static const int ENC_RANGE = (ENC_MAX - ENC_MIN + 1);
 static const int ENC_HALF = (ENC_RANGE / 2);
 
-AppManager::AppManager(LedMatrix& m)
+AppManager::AppManager(AnimationManager& am, RotaryEncoder& enc, LedMatrix& m, StorageManager& st)
 	: matrix(&m),
-			currentIndex(0),
+			animMgr(&am),
+			encoder(&enc),
+			storage(&st),
 			mode(MODE_BRIGHTNESS),
 			appState(STATE_RUNNING),
 			powered(true),
@@ -38,11 +40,7 @@ AppManager::AppManager(LedMatrix& m)
 	frameIntervalMs = interval;
 }
 
-void AppManager::addAnimation(AnimationBase* a) {
-	if (!a) return;
-	animations.push_back(a);
-	animDirty.push_back(0);
-}
+// addAnimation wrapper removed; main registers animations directly via AnimationManager
 
 void AppManager::begin() {
 	DBG_PRINTLN("[AppManager] Initializing...");
@@ -61,19 +59,14 @@ void AppManager::begin() {
 
 	loadState();
 	applyMasterBrightness();
-	if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
-		DBG_PRINTF("[AppManager] Loaded animation index: %d (%s), brightness: %d\n", currentIndex, animations[currentIndex]->getName(), brightStep);
-	} else {
-		DBG_PRINTF("[AppManager] Loaded animation index: %d, brightness: %d\n", currentIndex, brightStep);
-	}
-
-    
-	if (!animations.empty()) {
-		if (currentIndex < 0 || currentIndex >= (int)animations.size()) currentIndex = 0;
-		// Load animation-specific settings via StorageManager if supported
-		storage.loadAnimation(*animations[currentIndex]);
-		// notify animation that it's now active (for warmups, etc.)
-		animations[currentIndex]->onActivate();
+	if (animMgr) {
+		AnimationBase* cur = animMgr->getCurrentAnimation();
+		if (cur) {
+			DBG_PRINTF("[AppManager] Loaded animation: id=%u (%s), brightness: %d\n", (unsigned)cur->getId(), cur->getName(), brightStep);
+			if (storage) storage->loadAnimation(*cur);
+		} else {
+			DBG_PRINTF("[AppManager] Loaded animation: none, brightness: %d\n", brightStep);
+		}
 	}
 	DBG_PRINTLN("[AppManager] Initialization complete");
 	lastActivityMillis = millis();
@@ -108,9 +101,11 @@ void AppManager::update() {
 }
 
 void AppManager::updateInput(unsigned long now) {
-	// В текущей архитектуре ввод приходит через onEvent().
-	// Здесь можно добавить polling других входов (например, кнопки/датчики), если появятся.
+	// Поллинг энкодера переносим сюда, чтобы main не вызывал rotary.update()
 	(void)now;
+	if (encoder) {
+		encoder->update();
+	}
 }
 
 void AppManager::updateState(unsigned long now) {
@@ -197,9 +192,7 @@ void AppManager::renderBase() {
 		return;
 	}
 
-	if (animations.empty()) return;
-	if (currentIndex < 0 || currentIndex >= (int)animations.size()) return;
-	// Если активен любой оверлей — базовую анимацию не рисуем
+	// Если активен любой оверлей — менеджер отрисует оверлей в renderOverlay
 	if (overlayPowerOnActive || overlayPowerOffActive) return;
 	switch (appState) {
 		case STATE_POWER_OFF:
@@ -209,7 +202,7 @@ void AppManager::renderBase() {
 		case STATE_RUNNING:
 			if (!powered) return;
 			if (mode == MODE_SELECT_ANIM || mode == MODE_BRIGHTNESS || mode == MODE_COLOR) {
-				animations[currentIndex]->render(*matrix);
+				if (animMgr) animMgr->render();
 			}
 			return;
 	}
@@ -228,13 +221,15 @@ void AppManager::renderOverlay() {
 		case STATE_POWER_ON:
 			// Оверлей включения — поверх кадра, обычно с очисткой
 			matrix->clear();
-			powerOnAnim.render();
+			if (animMgr) { animMgr->setOverlay(&powerOnAnim); animMgr->render(); }
 			return;
 		case STATE_RUNNING:
 			// Оверлей выключения при удержании — поверх базы
 			if (overlayPowerOffActive) {
 				matrix->clear();
-				powerOffAnim.render();
+				if (animMgr) { animMgr->setOverlay(&powerOffAnim); animMgr->render(); }
+			} else {
+				if (animMgr) animMgr->unsetOverlay();
 			}
 			return;
 	}
@@ -280,10 +275,9 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
 				DBG_PRINTLN("[AppManager] POWERED ON - state restored");
 
 				// restore current animation settings (if any)
-				if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
-					storage.loadAnimation(*animations[currentIndex]);
-					// notify animation that it's now active (for warmups, etc.)
-					animations[currentIndex]->onActivate();
+				if (animMgr) {
+					AnimationBase* cur = animMgr->getCurrentAnimation();
+					if (cur && storage) storage->loadAnimation(*cur);
 				}
 
 				// Синхронизацию границ/значения энкодера больше не выполняем (фиксация на старте)
@@ -329,22 +323,20 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
 
 		switch (mode) {
 			case MODE_SELECT_ANIM:
-				if (animations.empty() || !matrix) return;
+				if (!animMgr || !matrix) return;
 				{
-					int n = (int)animations.size();
-					int newIndex = currentIndex + delta;
-					// wrap в пределах списка анимаций
-					while (newIndex < 0) newIndex += n;
-					while (newIndex >= n) newIndex -= n;
-					if (newIndex == currentIndex) return;
-
+					int steps = (delta > 0) ? delta : -delta;
+					for (int i = 0; i < steps; ++i) {
+						if (delta > 0) animMgr->switchToNext();
+						else animMgr->switchToPrevious();
+					}
 					matrix->clear();
 					matrix->show();
-
-					currentIndex = newIndex;
-					DBG_PRINTF("[AppManager] Animation changed to: %d (%s)\n", currentIndex, animations[currentIndex]->getName());
-						storage.loadAnimation(*animations[currentIndex]);
-					animations[currentIndex]->onActivate();
+					AnimationBase* cur = animMgr->getCurrentAnimation();
+					if (cur) {
+						DBG_PRINTF("[AppManager] Animation changed to: id=%u (%s)\n", (unsigned)cur->getId(), cur->getName());
+						if (storage) storage->loadAnimation(*cur);
+					}
 				}
 				break;
 
@@ -357,15 +349,15 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
 
 			case MODE_COLOR:
 				colorStep = constrain(colorStep + delta, 0, APP_COLOR_STEPS - 1);
-				if (!matrix || animations.empty()) break;
-				if (currentIndex < 0 || currentIndex >= (int)animations.size()) break;
+				if (!matrix || !animMgr) break;
 				{
 					int hue = (colorStep * 256) / APP_COLOR_STEPS;
 					if (hue > 255) hue = 255;
-						animations[currentIndex]->setColorHSV((uint8_t)hue, 255);
-					// mark animation config dirty for deferred save
-					if (currentIndex >= 0 && currentIndex < (int)animDirty.size()) {
-						animDirty[(size_t)currentIndex] = 1;
+					AnimationBase* cur = animMgr->getCurrentAnimation();
+					if (cur) {
+						cur->setColorHSV((uint8_t)hue, 255);
+						animDirty = true;
+						animDirtyTarget = cur;
 						animDirtySinceMs = millis();
 					}
 					DBG_PRINTF("[AppManager] Color (Hue): %d (%d/%d)\n", hue, colorStep, APP_COLOR_STEPS);
@@ -381,12 +373,11 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
 bool AppManager::saveState() {
 	// Prepare AppCfg from current runtime state
 	appCfg.masterBrightness = (uint16_t)constrain(brightStep, 0, APP_STEPS - 1);
-	if (!animations.empty() && currentIndex >= 0 && currentIndex < (int)animations.size()) {
-		appCfg.lastAnimId = animations[currentIndex]->getId();
-	} else {
-		appCfg.lastAnimId = 0;
-	}
-	bool ok = storage.saveApp(appCfg);
+	if (animMgr) {
+		AnimationBase* cur = animMgr->getCurrentAnimation();
+		appCfg.lastAnimId = cur ? cur->getId() : 0;
+	} else { appCfg.lastAnimId = 0; }
+	bool ok = storage ? storage->saveApp(appCfg) : false;
 	if (ok) {
 		DBG_PRINTF("[NVS] State saved: animId=%u, brightnessStep=%d\n", (unsigned)appCfg.lastAnimId, brightStep);
 	} else {
@@ -397,23 +388,14 @@ bool AppManager::saveState() {
 
 bool AppManager::loadState() {
 	// Load AppCfg via StorageManager
-	bool ok = storage.loadApp(appCfg);
+	bool ok = storage ? storage->loadApp(appCfg) : false;
 	// Apply brightness (clamp)
 	brightStep = (int)appCfg.masterBrightness;
 	if (brightStep < 0) brightStep = 0;
 	if (brightStep >= APP_STEPS) brightStep = APP_STEPS - 1;
-	// Resolve animation index by stored ID
-	int resolved = 0;
-	if (!animations.empty() && appCfg.lastAnimId != 0) {
-		for (size_t i = 0; i < animations.size(); ++i) {
-			if (animations[i]->getId() == appCfg.lastAnimId) {
-				resolved = (int)i;
-				break;
-			}
-		}
-	}
-	currentIndex = resolved;
-	DBG_PRINTF("[NVS] State loaded: animId=%u -> index=%d, brightnessStep=%d\n", (unsigned)appCfg.lastAnimId, currentIndex, brightStep);
+	// Resolve animation by stored ID via manager
+	if (animMgr && appCfg.lastAnimId != 0) animMgr->setAnimation(appCfg.lastAnimId);
+	DBG_PRINTF("[NVS] State loaded: animId=%u, brightnessStep=%d\n", (unsigned)appCfg.lastAnimId, brightStep);
 	return ok;
 }
 
@@ -445,16 +427,13 @@ void AppManager::flushDirty(bool force) {
 		stateDirty = false;
 		did = true;
 	}
-	// save animations configs
-	for (size_t i = 0; i < animDirty.size(); ++i) {
-		if ((i < animations.size()) && (animDirty[i] || force)) {
-			storage.saveAnimation(*animations[i]);
-			animDirty[i] = 0;
-			did = true;
-		}
-	}
-	if (did) {
+	// save current animation config if marked dirty
+	if ((animDirty && animDirtyTarget) || force) {
+		if (storage && animDirtyTarget) storage->saveAnimation(*animDirtyTarget);
+		animDirty = false;
+		animDirtyTarget = nullptr;
 		animDirtySinceMs = 0;
+		did = true;
 	}
 }
 

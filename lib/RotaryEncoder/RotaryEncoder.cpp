@@ -4,9 +4,9 @@
 
 // изменённый конструктор: steps по умолчанию = 1
 RotaryEncoder::RotaryEncoder()
-    : _clkPin(ROTARY_CLK_PIN), _dtPin(ROTARY_DT_PIN), _swPin(ROTARY_SW_PIN),
-      _steps(1),
-      _value(0), _minV(0), _maxV(127), _wrap(false),
+        : _clkPin(ROTARY_CLK_PIN), _dtPin(ROTARY_DT_PIN), _swPin(ROTARY_SW_PIN),
+            _steps(1),
+            _value(0), _minV(ENC_MIN), _maxV(ENC_MAX), _wrap(true),
       _listenerCount(0), _lastSwMillis(0),
       _swState(HIGH), _btnDown(false),
       // init new per-instance state
