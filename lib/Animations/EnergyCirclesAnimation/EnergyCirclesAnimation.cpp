@@ -1,5 +1,6 @@
 #include "EnergyCirclesAnimation.hpp"
 #include <math.h>
+#include "../../LedMatrix/LedMatrix.hpp"
 
 EnergyCirclesAnimation::EnergyCirclesAnimation(uint16_t id)
     : AnimationBase(ENERGY_DEFAULT_HUE, id) {}
@@ -55,7 +56,6 @@ void EnergyCirclesAnimation::render(LedMatrix& m) {
         }
     }
 
-    // show() is managed by AppManager
 }
 
 // Base class provides ISerializable

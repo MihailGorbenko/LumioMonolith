@@ -23,16 +23,12 @@
 class SegmentRunnerAnimation : public AnimationBase {
 public:
     explicit SegmentRunnerAnimation(uint16_t id);
-
-    void setStepPeriodMs(uint16_t ms);
     void render(LedMatrix& m) override;
+      const char* getName() const override { return SEGMENTRUNNER_ANIMATION_NAME; }
 
 private:
     uint16_t stepPeriodMs; // time per row change
 
-    // ISerializable
-public:
-    const char* getName() const override { return SEGMENTRUNNER_ANIMATION_NAME; }
 };
 
 #endif // SEGMENT_RUNNER_ANIMATION_HPP

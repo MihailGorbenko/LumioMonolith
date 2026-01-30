@@ -1,11 +1,11 @@
 #include "CenterPulseAnimation.hpp"
+#include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
 CenterPulseAnimation::CenterPulseAnimation(uint16_t id)
     : AnimationBase(CENTERPULSE_DEFAULT_HUE, id),
             speedDiv(6) {}
 
-void CenterPulseAnimation::setSpeedDiv(uint8_t div) { speedDiv = (div == 0) ? 1 : div; }
 
 void CenterPulseAnimation::render(LedMatrix& m) {
     int w = m.getWidth();
@@ -42,5 +42,5 @@ void CenterPulseAnimation::render(LedMatrix& m) {
             m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vRow);
         }
     }
-    // show() is managed by AppManager
+    
 }

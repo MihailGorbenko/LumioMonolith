@@ -1,4 +1,5 @@
 #include "StarsAnimation.hpp"
+#include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
 StarsAnimation::StarsAnimation(uint16_t id)
@@ -133,5 +134,4 @@ void StarsAnimation::render(LedMatrix& m) {
 
 	lastMillis = now;
 
-	// show() is managed by AppManager
 }

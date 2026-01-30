@@ -5,7 +5,7 @@
 #include "../../StorageManager/Serializable.hpp"
 
 #ifndef ENERGY_DEFAULT_HUE
-#define ENERGY_DEFAULT_HUE 0
+#define ENERGY_DEFAULT_HUE 160 
 #endif
 
 #ifndef ENERGY_DEFAULT_SAT

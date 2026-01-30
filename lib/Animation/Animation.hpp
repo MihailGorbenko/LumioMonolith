@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <cstring>
 #include "AnimConfig.hpp"
-#include "../LedMatrix/LedMatrix.hpp"
+class LedMatrix; // forward declaration to avoid heavy include dependency
 
 // Значение мастер-яркости для всех анимаций (финальный множитель яркости)
 #ifndef ANIMATION_DEFAULT_VAL

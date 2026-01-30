@@ -1,4 +1,5 @@
 #include "PlasmaAnimation.hpp"
+#include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
 PlasmaAnimation::PlasmaAnimation(uint16_t id)
@@ -30,5 +31,4 @@ void PlasmaAnimation::render(LedMatrix& m) {
 		}
 	}
 
-	// show() is managed by AppManager
 }

@@ -5,7 +5,7 @@
 // App configuration container implementing ISerializable
 class AppCfg : public ISerializable {
 public:
-    uint16_t masterBrightness; // 0..APP_STEPS-1
+    uint16_t masterBrightness; // 0..255 (linear input, gamma applied at runtime)
     uint16_t lastAnimId;       // stable animation ID
 
     AppCfg() : masterBrightness(0), lastAnimId(0) {}

@@ -1,4 +1,5 @@
 #include "SparkleWaveAnimation.hpp"
+#include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
 SparkleWaveAnimation::SparkleWaveAnimation(uint16_t id)
@@ -35,7 +36,7 @@ void SparkleWaveAnimation::render(LedMatrix& m) {
 		}
 	}
 
-	// show() is managed by AppManager
+	
 }
 
 // Base class provides ISerializable

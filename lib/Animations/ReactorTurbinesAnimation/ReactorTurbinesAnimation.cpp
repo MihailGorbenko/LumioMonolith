@@ -1,4 +1,5 @@
 #include "ReactorTurbinesAnimation.hpp"
+#include "../../LedMatrix/LedMatrix.hpp"
 #include <math.h>
 #include <FastLED.h>
 
@@ -55,7 +56,6 @@ void ReactorTurbinesAnimation::render(LedMatrix& m) {
         }
     }
 
-    // show() is managed by AppManager
 }
 
 // Base class provides ISerializable

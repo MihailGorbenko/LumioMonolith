@@ -31,12 +31,8 @@ public:
 	// default hue comes from defines; id is provided by main
 	explicit StarsAnimation(uint16_t id);
 
-	// (use base `setColorHSV`)
-
 	// render one frame; controller passes matrix
 	void render(LedMatrix& m) override;
-
-	// (legacy NVS helpers removed; use ISerializable via StorageManager)
 
 	const char* getName() const override { return STARS_ANIMATION_NAME; }
 

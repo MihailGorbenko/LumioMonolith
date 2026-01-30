@@ -7,7 +7,7 @@
 #include "../../StorageManager/Serializable.hpp"
 
 #ifndef EQ_DEFAULT_HUE
-#define EQ_DEFAULT_HUE 96 // green
+#define EQ_DEFAULT_HUE 85 // classic green (~120° on 0–255 hue scale)
 #endif
 #ifndef EQ_DEFAULT_SAT
 #define EQ_DEFAULT_SAT 255
@@ -26,6 +26,7 @@ public:
     explicit EqualizerBarsAnimation(uint16_t id);
     // configuration setters removed as unused
     void render(LedMatrix& m) override;
+     const char* getName() const override { return EQUALIZERBARS_ANIMATION_NAME; }
 private:
     uint8_t speedDiv;
     int numCols;
@@ -36,9 +37,7 @@ private:
     uint32_t nextStepMs;
     uint16_t stepPeriodMs;
 
-    // ISerializable
-public:
-    const char* getName() const override { return EQUALIZERBARS_ANIMATION_NAME; }
+   
 };
 
 #endif // EQUALIZER_BARS_ANIMATION_HPP

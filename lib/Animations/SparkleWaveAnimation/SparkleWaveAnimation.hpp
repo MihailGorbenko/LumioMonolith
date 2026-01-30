@@ -24,13 +24,11 @@ class SparkleWaveAnimation : public AnimationBase {
 public:
 	explicit SparkleWaveAnimation(uint16_t id);
 	void render(LedMatrix& m) override;
-
+	const char* getName() const override { return SPARKLEWAVE_ANIMATION_NAME; }
+	
 private:
 	uint8_t sparkleChance; // 0..255
-
-	// ISerializable
-public:
-	const char* getName() const override { return SPARKLEWAVE_ANIMATION_NAME; }
+	
 };
 
 #endif // SPARKLE_WAVE_ANIMATION_HPP

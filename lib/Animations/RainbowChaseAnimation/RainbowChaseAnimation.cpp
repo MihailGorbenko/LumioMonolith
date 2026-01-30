@@ -1,4 +1,5 @@
 #include "RainbowChaseAnimation.hpp"
+#include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
 RainbowChaseAnimation::RainbowChaseAnimation(uint16_t id)
@@ -24,5 +25,5 @@ void RainbowChaseAnimation::render(LedMatrix& m) {
 		}
 	}
 
-	// show() is managed by AppManager
+
 }

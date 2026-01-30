@@ -2,12 +2,12 @@
 #define ROTARY_ENCODER_HPP
 #include <Arduino.h>
 
-// Пины энкодера задаются здесь (дефайнами внутри файла)
+// Пины энкодера задаются здесь (дефайнами внутри файла).
 #define ROTARY_CLK_PIN 4
 #define ROTARY_DT_PIN 3
 #define ROTARY_SW_PIN 5
 
-// Encoder defaults (can be overridden before including this header)
+// Границы энкодера по умолчанию (можно переопределить до подключения заголовка).
 #ifndef ENC_MIN
 #define ENC_MIN -32768
 #endif
@@ -15,7 +15,7 @@
 #define ENC_MAX 32767
 #endif
 
-// Encoder acceleration thresholds (ms)
+// Пороговые значения для ускорения энкодера (мс).
 #ifndef ENCODER_ACCEL_THRESH_SLOW
 #define ENCODER_ACCEL_THRESH_SLOW 100
 #endif
@@ -27,7 +27,7 @@ class RotaryEncoder {
 public:
     enum Event { NONE, PRESS_START, PRESS_END, INCREMENT, DECREMENT };
 
-    // Интерфейс подписчика
+    // Интерфейс слушателя событий энкодера.
     class IEncoderListener {
     public:
         virtual void onEvent(Event ev, int value) = 0;
@@ -41,10 +41,10 @@ public:
     void setValue(int v);
     void setBoundaries(int minV, int maxV, bool wrap);
 
-    // added: configure acceleration/velocity behaviour
+    // Настройка ускорения/скорости.
     void setAccelParams(unsigned long med_ms, unsigned long fast_ms, int med_mult, int fast_mult = 3, float filterAlpha = 0.3f);
 
-    // added: runtime control of acceleration from controller
+    // Управление ускорением во время работы контроллера.
     void setAccelMultipliers(int med_mult, int fast_mult);
     void setAccelThresholds(unsigned long med_ms, unsigned long fast_ms);
     void setAccelEnabled(bool enabled);
@@ -69,12 +69,12 @@ private:
 
     void notify(Event ev, int value);
 
-    // added: per-instance quadrature/debounce state (supports multiple encoders)
+    // Состояния квадратуры/дребезга на экземпляр (поддержка нескольких энкодеров).
     uint8_t _lastState;
     int     _accum; // allow accumulation of multiple transitions between updates
     uint8_t _lastRawSw;
 
-    // added: velocity/acceleration state and params
+    // Состояния и параметры скорости/ускорения.
     unsigned long _lastStepMillis;
     float _vel;                  // smoothed instantaneous velocity (steps/sec)
     float _velFilterAlpha;       // EMA alpha
@@ -83,9 +83,9 @@ private:
     int _accelMedMult;           // medium multiplier
     int _accelFastMult;          // fast multiplier
 
-    bool _accelEnabled;         // enable/disable accel behaviour
+    bool _accelEnabled;         // Включение/выключение поведения ускорения.
 
-    // safety: max full steps to process in one update (prevents huge jumps)
+    // Безопасность: максимум «полных шагов» за один update (предотвращает большие скачки).
     static const int MAX_FULL_STEPS_PER_UPDATE = 16;
 };
 

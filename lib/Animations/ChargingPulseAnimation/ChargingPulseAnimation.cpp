@@ -1,4 +1,5 @@
 #include "ChargingPulseAnimation.hpp"
+#include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 #include <math.h>
 
@@ -98,7 +99,6 @@ void ChargingPulseAnimation::render(LedMatrix& m) {
         }
     }
 
-    // show() is managed by AppManager
 }
 
 // Base class provides ISerializable

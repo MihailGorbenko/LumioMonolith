@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "debug.hpp"
 #include "../lib/LedMatrix/LedMatrix.hpp"
 #include "../lib/RotaryEncoder/RotaryEncoder.hpp"
 #include "../lib/Animations/StarsAnimation/StarsAnimation.hpp"
@@ -56,13 +57,13 @@ ChargingPulseAnimation chargingPulse(ANIM_ID_CHARGING_PULSE);
 AppManager app(animMgr, rotary, matrix, storage);
 
 void setup() {
-	#if DEBUG_SERIAL
+	#if LOG_ENABLED
 	Serial.begin(115200);
 	while (!Serial) { delay(10); }
-	Serial.println("\n\n========================================");
-	Serial.println("  LumioMonolith - LED Matrix Animation System");
-	Serial.println("========================================");
-	Serial.println("Starting LumioMonolith...");
+	LOG_PRINTLN("\n\n========================================");
+	LOG_PRINTLN("  LumioMonolith - LED Matrix Animation System");
+	LOG_PRINTLN("========================================");
+	LOG_PRINTLN("Starting LumioMonolith...");
 	#endif
 
 	matrix.init();
@@ -84,10 +85,10 @@ void setup() {
 	
 	app.begin();
 
-	#if DEBUG_SERIAL
-	Serial.println("Setup complete. Debug mode ENABLED.");
-	Serial.println("Ready for hardware testing!");
-	Serial.println("========================================\n");
+	#if LOG_ENABLED
+	LOG_PRINTLN("Setup complete. Debug mode ENABLED.");
+	LOG_PRINTLN("Ready for hardware testing!");
+	LOG_PRINTLN("========================================\n");
 	#endif
 }
 

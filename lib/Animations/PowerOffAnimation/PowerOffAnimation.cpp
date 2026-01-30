@@ -49,6 +49,5 @@ void PowerOffAnimation::render() {
 		}
 	}
 
-	// show() is managed by AppManager
 }
 

@@ -1,37 +1,11 @@
 #include "MatrixCodeRainAnimation.hpp"
+#include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
 MatrixCodeRainAnimation::MatrixCodeRainAnimation(uint16_t id)
     : AnimationBase(MATRIX_RAIN_DEFAULT_HUE, id),
-        tailLen(1), numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(50) {
-    int w = 0;
-    int h = 0;
-    // обычная логика: колонки = ширина, строки = высота
-    numCols = w;
-    numRows = h;
-    // хвост ограничиваем высотой (движение по Y)
-    tailLen = (uint8_t)min<uint8_t>(tailLen, (numRows > 0 ? (numRows - 1) : 1));
-    // выделяем память для массивов по количеству колонок (15)
-    heads.resize(numCols);
-    counter.resize(numCols);
-    speeds.resize(numCols);
-    // головы по каждому столбцу X (позиции вдоль сегмента) с разными начальными позициями и скоростями
-        for (int x = 0; x < numCols; ++x) {
-        heads[x] = random8(0, (numRows > 0 ? numRows : 1));
-        // per-column random speed: larger -> slower. Choose 4..12 (slower than before)
-        speeds[x] = (uint8_t)random8(4, 13);
-        // стартовый сдвиг в пределах скорости, чтобы стартовали в разное время
-        counter[x] = random8(speeds[x]);
-    }
-}
-
-MatrixCodeRainAnimation::~MatrixCodeRainAnimation() {
-    // vectors automatically cleaned up
-}
-
-void MatrixCodeRainAnimation::setTailLen(uint8_t len) {
-    uint8_t maxTail = (numRows > 0) ? (numRows - 1) : 1;
-    tailLen = (len == 0) ? 1 : (uint8_t)min<uint8_t>(len, maxTail);
+      tailLen(1), numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(50) {
+    // Defer initialization until render when matrix size is known.
 }
 
 void MatrixCodeRainAnimation::render(LedMatrix& m) {
@@ -39,6 +13,25 @@ void MatrixCodeRainAnimation::render(LedMatrix& m) {
     int h = m.getHeight();
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
+
+    // Lazy init on first render or when size changes
+    if (numCols != w || numRows != h || heads.size() != (size_t)w) {
+        numCols = w;
+        numRows = h;
+        heads.assign(numCols, 0);
+        counter.assign(numCols, 0);
+        speeds.assign(numCols, 0);
+        // Tail length limited by rows; choose a small default and clamp
+        uint8_t maxTail = (numRows > 0) ? (uint8_t)(numRows - 1) : 1;
+        uint8_t defTail = 3;
+        tailLen = (uint8_t)min<uint8_t>(defTail, maxTail);
+        // Initialize per-column state
+        for (int x = 0; x < numCols; ++x) {
+            heads[x] = random8(0, (uint8_t)(numRows > 0 ? numRows : 1));
+            speeds[x] = (uint8_t)random8(4, 13);
+            counter[x] = random8(speeds[x]);
+        }
+    }
 
     uint32_t now = millis();
     if ((int32_t)(now - nextStepMs) >= 0) {
@@ -68,7 +61,6 @@ void MatrixCodeRainAnimation::render(LedMatrix& m) {
         }
     }
 
-    // show() is managed by AppManager
 }
 
 // Base class provides ISerializable

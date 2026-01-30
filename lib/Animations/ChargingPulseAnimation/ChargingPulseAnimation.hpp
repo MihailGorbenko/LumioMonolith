@@ -6,7 +6,7 @@
 #include "../../StorageManager/Serializable.hpp"
 
 #ifndef CHARGING_DEFAULT_HUE
-#define CHARGING_DEFAULT_HUE 96 // greenish by default
+#define CHARGING_DEFAULT_HUE 170 // blue by default
 #endif
 #ifndef CHARGING_DEFAULT_SAT
 #define CHARGING_DEFAULT_SAT 255

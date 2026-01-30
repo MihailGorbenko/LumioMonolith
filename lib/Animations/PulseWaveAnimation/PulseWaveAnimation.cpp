@@ -1,4 +1,5 @@
 #include "PulseWaveAnimation.hpp"
+#include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
 
@@ -36,7 +37,6 @@ void PulseWaveAnimation::render(LedMatrix& m) {
 		}
 	}
 
-	// show() is managed by AppManager
 }
 
 // Base class provides ISerializable

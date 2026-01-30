@@ -1,7 +1,8 @@
+//#pragma once
 #pragma once
 #include <Arduino.h>
 #include <vector>
-#include "../../src/config.hpp"
+#include "../../src/debug.hpp"
 #include "../StorageManager/StorageManager.hpp"
 #include "../RotaryEncoder/RotaryEncoder.hpp"
 #include "../LedMatrix/LedMatrix.hpp"
@@ -11,152 +12,148 @@
 #include "../Animations/PowerOnAnimation/PowerOnAnimation.hpp"
 #include "AppCfg.hpp"
 
-// DEBUG MODE - enable serial output for hardware testing (set 0 to disable)
-#ifndef DEBUG_SERIAL
-#define DEBUG_SERIAL 0
-#endif
+// Отладка осуществляется через макросы LOG из debug.hpp; локальные флаги не используются.
 
-// настройка FPS для обновления анимации (можно переопределить в проекте)
+// Частота кадров (FPS).
 #ifndef APP_FPS
 #define APP_FPS 30
 #endif
-// число шагов для яркости / цвета
-#ifndef APP_STEPS
-#define APP_STEPS 20
-#endif
-// число шагов для настройки цвета (мелкий шаг)
-#ifndef APP_COLOR_STEPS
-#define APP_COLOR_STEPS 60
-#endif
-// длительность удержания для выключения (мс)
-#ifndef APP_POWEROFF_HOLD_MS
-#define APP_POWEROFF_HOLD_MS 2000
-#endif
 
-// минимальное время (мс) удержания перед показом анимации выключения
-#ifndef APP_POWEROFF_MIN_ANIM_MS
-#define APP_POWEROFF_MIN_ANIM_MS 500
-#endif
-
-
-// idle timeout to auto-switch to brightness (ms)
-#ifndef APP_IDLE_TIMEOUT_MS
-#define APP_IDLE_TIMEOUT_MS 10000
-#endif
-
-// power-on animation duration (ms)
-#ifndef APP_POWERON_ANIM_MS
-#define APP_POWERON_ANIM_MS 800
-#endif
-
-// задержка перед сохранением настроек (мс) для защиты NVS
-#ifndef APP_SAVE_DEFER_MS
-#define APP_SAVE_DEFER_MS 3000
-#endif
-
-// Gamma коррекция для яркости (по умолчанию ~2.2)
+// Коэффициент гамма-коррекции.
 #ifndef APP_GAMMA
 #define APP_GAMMA 2.2f
 #endif
 
+// Диапазон мастер-яркости (линейный ввод пользователя).
+#ifndef APP_BRIGHTNESS_MIN
+#define APP_BRIGHTNESS_MIN 7
+#endif
+#ifndef APP_BRIGHTNESS_MAX
+#define APP_BRIGHTNESS_MAX 255
+#endif
+
+// Тайм-ауты и длительности (мс).
+#ifndef APP_IDLE_TIMEOUT_MS
+#define APP_IDLE_TIMEOUT_MS 30000
+#endif
+#ifndef APP_STARTUP_OVERLAY_MS
+#define APP_STARTUP_OVERLAY_MS 3000
+#endif
+#ifndef APP_STARTUP_RENDER_DELAY_MS
+#define APP_STARTUP_RENDER_DELAY_MS 2000
+#endif
+#ifndef APP_POWEROFF_OVERLAY_START_MS
+#define APP_POWEROFF_OVERLAY_START_MS 500
+#endif
+#ifndef APP_POWEROFF_OVERLAY_MS
+#define APP_POWEROFF_OVERLAY_MS 2000
+#endif
+#ifndef APP_POWEROFF_HOLD_THRESHOLD_MS
+#define APP_POWEROFF_HOLD_THRESHOLD_MS 2500
+#endif
+
+// Шаги яркости: полный диапазон за указанное число «тиков» медленного вращения.
+#ifndef APP_BRIGHTNESS_TICKS
+#define APP_BRIGHTNESS_TICKS 30
+#endif
+
+// Шаги оттенка: полный проход по hue за указанное число «тиков».
+#ifndef APP_COLOR_TICKS
+#define APP_COLOR_TICKS 60
+#endif
+
 class AppManager : public RotaryEncoder::IEncoderListener {
 public:
-	explicit AppManager(AnimationManager& am, RotaryEncoder& enc, LedMatrix& m, StorageManager& st);
+    explicit AppManager(AnimationManager& am, RotaryEncoder& enc, LedMatrix& m, StorageManager& st);
 
-	// добавить анимацию (в контроллере хранится указатель, владелец остаётся у вызывающего)
-	// (removed) registration now done directly via AnimationManager in main
+    void begin();
+    void update();
 
-	// инициализация (вызвать в setup)
-	void begin();
+    // Rotary events
+    void onEvent(RotaryEncoder::Event ev, int value) override;
 
-	// главный update — вызывать часто в loop()
-	void update();
+    // Persistence
+    bool saveState();
+    bool loadState();
 
-	// реализация интерфейса RotaryEncoder::IEncoderListener
-	void onEvent(RotaryEncoder::Event ev, int value) override;
-
-	// сохранение/загрузка состояния (NVS)
-	bool saveState();
-	bool loadState();
-	// храним внешние зависимости
-	StorageManager* storage;
+    StorageManager* storage;
 
 private:
-enum Mode { MODE_BRIGHTNESS = 0, MODE_SELECT_ANIM = 1, MODE_COLOR = 2, MODE_POWEROFF = 3 };
+    // Состояния конечного автомата приложения.
+    enum class State { Startup, Shutdown, Animation, Color, Brightness, Off };
 
-// Глобальное состояние приложения
-enum AppState {
-	STATE_RUNNING,
-	STATE_POWER_ON,
-	STATE_POWER_OFF
-};
+    // Внешние зависимости.
+    LedMatrix* matrix;
+    AnimationManager* animMgr;
+    RotaryEncoder* encoder;
 
-	LedMatrix* matrix;
-	AnimationManager* animMgr;
-	RotaryEncoder* encoder;
+    // Текущее состояние автомата.
+    State state;
+    State prevState;
 
-	// режимы/состояние
-	Mode mode;
-	bool powered;
-	bool powered_off_shown;  // флаг для предотвращения повторной очистки
-	AppState appState;
+    // Ввод и таймеры.
+    bool btnDown;
+    unsigned long btnStartMs;
+    unsigned long lastActivityMs;
 
-	// яркость в шагах (0..APP_STEPS-1)
-	int brightStep;
-	// цветовой шаг (0..APP_STEPS-1) используется как дельта hue
-	int colorStep;
+    // Управление частотой кадров.
+    unsigned long lastFrameMs;
+    unsigned long frameIntervalMs;
 
-	// poweroff handling
-	bool btnDown;
-	unsigned long btnPressedMillis;
-	PowerOffAnimation powerOffAnim;
+    // Оверлей-анимации включения и выключения.
     PowerOnAnimation powerOnAnim;
+    PowerOffAnimation powerOffAnim;
+    bool overlayOnActive;
+    bool overlayOffActive;
 
+    // Последовательность запуска.
+    unsigned long startupBeginMs;
+    bool startupLoadedAnim;
+    unsigned long startupLoadedMs;
 
-	// fps control
-	unsigned long lastFrameMillis;
-	unsigned long frameIntervalMs;
-	unsigned long lastActivityMillis;
+    // Базовое значение энкодера для расчёта дельты.
+    int encBaseValue;
 
-    // power-on timing
-    unsigned long powerOnStartMillis;
-    unsigned long powerOnUntilMs;
+    // Яркость (линейный ввод 0..255) с применением гамма-LUT.
+    uint8_t brightness;
+    std::vector<uint8_t> gammaLUT; // size 256
+    int brightTicks; // 0..APP_BRIGHTNESS_TICKS
+    int colorTicks;  // 0..APP_COLOR_TICKS
 
-	// Вспомог.
-	void applyMasterBrightness(); // применить яркость к матрице/анимации
+    // Конфигурация приложения.
+    AppCfg appCfg;
 
-	// Пайплайн без блокировок
-	void updateInput(unsigned long now);
-	void updateState(unsigned long now);
-	void renderBase();
-	void renderOverlay();
-	void showFrame();
-
-	// Флаги/состояния для оверлеев и рендеринга
-	bool overlayPowerOffActive = false;
-	bool overlayPowerOnActive = false;
-	bool needClearOnce = false; // очистить матрицу один раз (напр., при выключении)
-	bool shouldRender = false;  // необходимость рендера текущего кадра
-
-	// Gamma LUT для яркости (размер = APP_STEPS)
-	std::vector<uint8_t> gammaLUT;
-
-	// Отложенное сохранение состояния (NVS)
-	bool stateDirty = false;
-	unsigned long stateDirtySinceMs = 0;
-	inline void scheduleStateSave() { stateDirty = true; stateDirtySinceMs = millis(); }
-
-	// Базовое значение энкодера для расчёта дельты (без смены границ в рантайме)
-	int encBaseValue = 0;
-
-	// Отложенное сохранение конфигов текущей анимации
-	bool animDirty = false;
-	unsigned long animDirtySinceMs = 0;
-	AnimationBase* animDirtyTarget = nullptr;
-
-	// Сброс отложенных сохранений (app + animations)
-	void flushDirty(bool force = false);
-
-	// App configuration object
-	AppCfg appCfg;
+    // Вспомогательные методы.
+    void setState(State s);
+    void onEnter(State s);
+    void onExit(State s);
+    void applyBrightness();
+    void handleIdle(unsigned long now);
+    void updateOverlays(unsigned long now);
+    void renderFrame();
+    inline uint8_t brightnessFromTicks(int t) const {
+        int tt = t;
+        if (tt < 0) tt = 0;
+        if (tt > APP_BRIGHTNESS_TICKS) tt = APP_BRIGHTNESS_TICKS;
+        int range = (int)APP_BRIGHTNESS_MAX - (int)APP_BRIGHTNESS_MIN;
+        int val = (int)APP_BRIGHTNESS_MIN + (int)lround(((double)tt * (double)range) / (double)APP_BRIGHTNESS_TICKS);
+        if (val < (int)APP_BRIGHTNESS_MIN) val = (int)APP_BRIGHTNESS_MIN;
+        if (val > (int)APP_BRIGHTNESS_MAX) val = (int)APP_BRIGHTNESS_MAX;
+        return (uint8_t)val;
+    }
+    inline uint8_t hueFromTicks(int t) const {
+        int tt = t;
+        if (tt < 0) tt = 0;
+        if (tt > APP_COLOR_TICKS) tt = APP_COLOR_TICKS;
+        int val = (int)lround(((double)tt * 255.0) / (double)APP_COLOR_TICKS);
+        if (val < 0) val = 0; if (val > 255) val = 255;
+        return (uint8_t)val;
+    }
+    inline int hueToTicks(uint8_t hue) const {
+        int h = (int)hue;
+        if (h < 0) h = 0; if (h > 255) h = 255;
+        int tt = (int)lround(((double)h * (double)APP_COLOR_TICKS) / 255.0);
+        if (tt < 0) tt = 0; if (tt > APP_COLOR_TICKS) tt = APP_COLOR_TICKS;
+        return tt;
+    }
 };

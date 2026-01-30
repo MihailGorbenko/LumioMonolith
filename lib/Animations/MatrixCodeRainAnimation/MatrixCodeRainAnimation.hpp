@@ -7,7 +7,7 @@
 #include "../../StorageManager/Serializable.hpp"
 
 #ifndef MATRIX_RAIN_DEFAULT_HUE
-#define MATRIX_RAIN_DEFAULT_HUE 96 // green-ish
+#define MATRIX_RAIN_DEFAULT_HUE 85 // green-ish
 #endif
 #ifndef MATRIX_RAIN_DEFAULT_SAT
 #define MATRIX_RAIN_DEFAULT_SAT 255
@@ -24,8 +24,6 @@
 class MatrixCodeRainAnimation : public AnimationBase {
 public:
     explicit MatrixCodeRainAnimation(uint16_t id);
-    ~MatrixCodeRainAnimation() override;
-    void setTailLen(uint8_t len);
     void render(LedMatrix& m) override;
     const char* getName() const override { return MATRIXCODERAIN_ANIMATION_NAME; }
 private:

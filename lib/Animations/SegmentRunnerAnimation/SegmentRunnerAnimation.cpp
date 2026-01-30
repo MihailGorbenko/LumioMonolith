@@ -1,13 +1,10 @@
 #include "SegmentRunnerAnimation.hpp"
+#include "../../LedMatrix/LedMatrix.hpp"
 
 SegmentRunnerAnimation::SegmentRunnerAnimation(uint16_t id)
     : AnimationBase(SEGMENTRUNNER_DEFAULT_HUE, id),
             stepPeriodMs(130) {}
 
-void SegmentRunnerAnimation::setStepPeriodMs(uint16_t ms) {
-    if (ms == 0) ms = 1;
-    stepPeriodMs = ms;
-}
 
 void SegmentRunnerAnimation::render(LedMatrix& m) {
     int w = m.getWidth();
@@ -25,7 +22,7 @@ void SegmentRunnerAnimation::render(LedMatrix& m) {
     for (int x = 0; x < w; ++x) {
         m.setPixelHSV(x, head, animCfg.hue, ANIMATION_DEFAULT_SAT, ANIMATION_DEFAULT_VAL);
     }
-    // show() is managed by AppManager
+   
 }
 
 // Base class provides ISerializable

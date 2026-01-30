@@ -24,13 +24,11 @@ class PulseWaveAnimation : public AnimationBase {
 public:
 	explicit PulseWaveAnimation(uint16_t id);
 	void render(LedMatrix& m) override;
+	const char* getName() const override { return PULSEWAVE_ANIMATION_NAME; }
 
 private:
 	uint8_t pulseRadius;  // 0..255
-
-	// ISerializable
-public:
-	const char* getName() const override { return PULSEWAVE_ANIMATION_NAME; }
 };
+	
 
 #endif // PULSE_WAVE_ANIMATION_HPP

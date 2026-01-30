@@ -24,7 +24,6 @@ class CenterPulseAnimation : public AnimationBase {
 public:
     explicit CenterPulseAnimation(uint16_t id);
 
-    void setSpeedDiv(uint8_t div);   // smaller = faster
     void render(LedMatrix& m) override;
 
 private:

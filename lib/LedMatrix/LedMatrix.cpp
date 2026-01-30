@@ -6,15 +6,15 @@ LedMatrix::LedMatrix() {
 
 
 void LedMatrix::init() {
-    FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000); // Ограничение по питанию
+    FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000); // Ограничение по питанию.
     FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
-    FastLED.setBrightness(255); // используем 255 — яркость управляется вручную через masterBrightness и baseLeds
+    FastLED.setBrightness(255); // Используем 255: яркость управляется вручную через masterBrightness и baseLeds.
     clear();
     update();
 }
 
 void LedMatrix::clear() {
-    fill_solid(baseLeds, NUM_LEDS, CRGB::Black); // ...очищаем буфер оригинальных цветов...
+    fill_solid(baseLeds, NUM_LEDS, CRGB::Black); // Очищаем буфер исходных цветов.
     fill_solid(leds, NUM_LEDS, CRGB::Black);
 }
 
@@ -29,13 +29,13 @@ void LedMatrix::setPixelHSV(int x, int y, uint8_t h, uint8_t s, uint8_t v) {
     }
     int index = XY(x, y);
     if (index < 0 || index >= NUM_LEDS) {
-        return;  // additional safety: XY might return invalid index
+        return;  // Дополнительная проверка: XY может вернуть некорректный индекс.
     }
-    // Сохраняем исходный цвет в RGB, затем масштабируем копию для вывода
+    // Сохраняем исходный цвет в RGB, затем масштабируем копию для вывода.
     CRGB orig = CHSV(h, s, v);
     baseLeds[index] = orig;
     CRGB out = orig;
-    out.nscale8_video(masterBrightness); // сохраняет относительные пропорции каналов → насыщенность не «выгорает»
+    out.nscale8_video(masterBrightness); // Сохраняет пропорции каналов — насыщенность не «выгорает».
     leds[index] = out;
 }
 
@@ -47,7 +47,7 @@ void LedMatrix::powerOff() {
 
 
 void LedMatrix::setMasterBrightness(uint8_t b) {
-    // Привести вход к диапазону 0..255
+    // Приводим вход к диапазону 0..255.
     uint8_t newB = (uint8_t)constrain(b, 0, 255);
 
     if (newB == this->masterBrightness) {
@@ -55,30 +55,28 @@ void LedMatrix::setMasterBrightness(uint8_t b) {
     }
 
     this->masterBrightness = newB;
-    // Пересчитать все выводимые цвета из baseLeds с новым масштабом
+    // Пересчитываем все выводимые цвета из baseLeds с новым масштабом.
     for (int i = 0; i < NUM_LEDS; ++i) {
         CRGB out = baseLeds[i];
         out.nscale8_video(this->masterBrightness);
         leds[i] = out;
     }
-    update(); // показываем текущее состояние с новой яркостью
+    update(); // Показываем текущее состояние с новой яркостью.
 }
 
 int LedMatrix::XY(int x, int y) {
-    // Преобразование координат (x, y) в индекс массива
-    // Новая компоновка: 5 горизонтальных секций по 15 диодов (строки),
-    // змейкой: снизу вверх, первая (нижняя) строка слева направо,
-    // следующая выше — справа налево и т.д.
-    // Логические координаты остаются с origin вверху слева (y=0 — верх),
-    // поэтому вычисляем физический индекс строки от низа.
+    // Преобразование координат (x, y) в индекс массива.
+    // Компоновка: 5 горизонтальных строк по 15 диодов, змейкой снизу вверх.
+    // Первая (нижняя) строка — слева направо; следующая выше — справа налево.
+    // Логический origin — сверху слева (y=0), поэтому вычисляем физический индекс строки от низа.
     if (x < 0 || x >= m_width || y < 0 || y >= m_height) {
-        return -1; // безопасный возврат при некорректных координатах
+        return -1; // Безопасный возврат при некорректных координатах.
     }
-    int physRow = (m_height - 1 - y); // 0 — нижняя строка
+    int physRow = (m_height - 1 - y); // 0 — нижняя строка.
     int rowBase = physRow * m_width;
-    if ((physRow & 1) == 0) { // чётная строка от низа: слева->справа
+    if ((physRow & 1) == 0) { // Чётная строка от низа: слева→справа.
         return rowBase + x;
-    } else { // нечётная строка от низа: справа->слева
+    } else { // Нечётная строка от низа: справа→слева.
         return rowBase + (m_width - 1 - x);
     }
 }

@@ -1,5 +1,6 @@
 #ifndef LED_MATRIX_HPP
 #define LED_MATRIX_HPP
+#include <Arduino.h>
 #include <FastLED.h>
 
 #define MATRIX_WIDTH 15
@@ -8,14 +9,14 @@
 #define DEF_BRIGHTNESS 128
 #define LED_PIN 6
 
-/// Класс управления светодиодной матрицей
+// Класс управления светодиодной матрицей.
 class LedMatrix {
 private:
     CRGB leds[NUM_LEDS];
-    CRGB baseLeds[NUM_LEDS]; // буфер оригинальных (незашкалированных) цветов
+    CRGB baseLeds[NUM_LEDS]; // Буфер исходных (незашкаленных) цветов.
     int m_width = MATRIX_WIDTH;
     int m_height = MATRIX_HEIGHT;
-    uint8_t masterBrightness = DEF_BRIGHTNESS; // Мастер яркость (глобальная)
+    uint8_t masterBrightness = DEF_BRIGHTNESS; // Мастер-яркость (глобальная).
     int XY(int x, int y);
 public:
 

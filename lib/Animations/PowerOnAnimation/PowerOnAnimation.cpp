@@ -35,5 +35,4 @@ void PowerOnAnimation::render() {
         }
     }
 
-    // show() is managed by AppManager
 }
