@@ -105,6 +105,10 @@ private:
     PowerOffAnimation powerOffAnim;
     bool overlayOnActive;
     bool overlayOffActive;
+    // Плейаут оверлея выключения после достижения порога удержания
+    unsigned long shutdownBeginMs;
+    uint8_t shutdownStartProg; // стартовое значение прогресса при входе в Shutdown (0..255)
+    uint8_t overlayOffProg;    // текущее установленное значение прогресса (0..255)
 
     // Последовательность запуска.
     unsigned long startupBeginMs;

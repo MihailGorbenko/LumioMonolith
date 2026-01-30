@@ -31,6 +31,9 @@ AppManager::AppManager(AnimationManager& am, RotaryEncoder& enc, LedMatrix& m, S
       powerOffAnim(m),
       overlayOnActive(false),
       overlayOffActive(false),
+            shutdownBeginMs(0),
+            shutdownStartProg(255),
+            overlayOffProg(255),
       startupBeginMs(0),
       startupLoadedAnim(false),
       startupLoadedMs(0),
@@ -76,8 +79,12 @@ void AppManager::begin() {
         if (brightTicks > APP_BRIGHTNESS_TICKS) brightTicks = APP_BRIGHTNESS_TICKS;
     }
 
-    // Старт в состоянии Off (экран очищен).
-    setState(State::Off);
+    // Старт в состоянии, соответствующем сохранённой конфигурации питания.
+    if (appCfg.powerOn) {
+        setState(State::Startup);
+    } else {
+        setState(State::Off);
+    }
     lastActivityMs = millis();
 }
 
@@ -98,8 +105,9 @@ void AppManager::update() {
     bool due = (elapsed >= frameIntervalMs);
     if (due) lastFrameMs = now;
 
-    // Рендерить, когда наступило время, активен оверлей или требуется Startup.
-    if (due || overlayOnActive || overlayOffActive || state == State::Startup) {
+    // Рендерить, когда наступило время (и не Off/Shutdown), активен оверлей или требуется Startup.
+    bool canRender = (state != State::Off && state != State::Shutdown);
+    if ((due && canRender) || overlayOnActive || overlayOffActive || state == State::Startup) {
         renderFrame();
     }
 }
@@ -115,7 +123,7 @@ void AppManager::setState(State s) {
 void AppManager::onEnter(State s) {
     switch (s) {
         case State::Off:
-            if (matrix) { matrix->clear(); matrix->update(); }
+            if (matrix) { matrix->powerOff(); }
             overlayOnActive = false; overlayOffActive = false;
             if (animMgr) animMgr->unsetOverlay();
             DBG_PRINTLN("[FSM] Enter OFF");
@@ -126,6 +134,9 @@ void AppManager::onEnter(State s) {
             startupLoadedAnim = false;
             overlayOnActive = true;
             overlayOffActive = false;
+            // Пометить состояние питания как включённое и сохранить.
+            appCfg.powerOn = 1;
+            saveState();
             DBG_PRINTLN("[FSM] Enter STARTUP");
             break;
 
@@ -175,9 +186,14 @@ void AppManager::onEnter(State s) {
             break;
 
         case State::Shutdown:
-            overlayOnActive = false; overlayOffActive = false;
-            if (animMgr) animMgr->unsetOverlay();
-            if (matrix) matrix->powerOff();
+            // Запускаем плейаут оверлея выключения: продолжаем гасить до конца.
+            overlayOnActive = false;
+            overlayOffActive = true;
+            shutdownBeginMs = millis();
+            // Начать с текущего прогресса, накопленного во время удержания.
+            shutdownStartProg = overlayOffProg;
+            // Пометить состояние питания как выключенное и сохранить.
+            appCfg.powerOn = 0;
             saveState();
             DBG_PRINTLN("[FSM] Enter SHUTDOWN");
             break;
@@ -247,6 +263,23 @@ void AppManager::handleIdle(unsigned long now) {
 }
 
 void AppManager::updateOverlays(unsigned long now) {
+    // Плейаут оверлея выключения после входа в Shutdown: дожигаем до конца.
+    if (state == State::Shutdown) {
+        if (overlayOffActive) {
+            unsigned long dt = now - shutdownBeginMs;
+            // Линейно уменьшаем прогресс до 0 за APP_POWEROFF_OVERLAY_MS
+            unsigned long dec = (APP_POWEROFF_OVERLAY_MS > 0) ? ((dt * 255UL) / (unsigned long)APP_POWEROFF_OVERLAY_MS) : 255UL;
+            uint8_t prog = (dec >= shutdownStartProg) ? 0 : (uint8_t)(shutdownStartProg - dec);
+            powerOffAnim.setProgress(prog);
+            overlayOffProg = prog;
+            if (prog == 0) {
+                overlayOffActive = false;
+                setState(State::Off);
+            }
+        }
+        return;
+    }
+
     // Прогресс оверлея запуска и последовательность действий.
     if (state == State::Startup) {
         unsigned long dt = now - startupBeginMs;
@@ -286,6 +319,7 @@ void AppManager::updateOverlays(unsigned long now) {
             uint8_t negProg = (uint8_t)(255 - prog);
             powerOffAnim.setProgress(negProg);
             overlayOffActive = true;
+            overlayOffProg = negProg;
         } else {
             overlayOffActive = false;
         }
@@ -305,25 +339,27 @@ void AppManager::renderFrame() {
     }
 
     // Рендер в зависимости от состояния.
+    bool didRender = false;
     switch (state) {
         case State::Off:
-            // Нет рендера в состоянии Off.
+            // Нет рендера и обновления в состоянии Off.
             break;
         case State::Shutdown:
-            // Матрица выключена, рендер не требуется.
+            // В состоянии Shutdown продолжаем рендерить оверлей выключения.
+            if (overlayOffActive && animMgr) { animMgr->render(); didRender = true; }
             break;
         case State::Startup:
-            if (animMgr) animMgr->render();
+            if (animMgr) { animMgr->render(); didRender = true; }
             break;
         case State::Brightness:
         case State::Animation:
         case State::Color:
-            if (animMgr) animMgr->render();
+            if (animMgr) { animMgr->render(); didRender = true; }
             break;
     }
 
-    // Вывод кадра.
-    matrix->update();
+    // Вывод кадра только если был рендер.
+    if (didRender) matrix->update();
 }
 
 void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
@@ -435,13 +471,20 @@ bool AppManager::saveState() {
     } else {
         appCfg.lastAnimId = 0;
     }
+    // Зафиксировать текущее состояние питания (не Off/Shutdown => on).
+    appCfg.powerOn = (state != State::Off && state != State::Shutdown) ? 1 : 0;
     bool ok = storage ? storage->saveApp(appCfg) : false;
-    DBG_PRINTF("[NVS] save app: animId=%u brightness=%u ok=%d\n", (unsigned)appCfg.lastAnimId, (unsigned)brightness, (int)ok);
+    DBG_PRINTF("[NVS] save app: animId=%u brightness=%u powerOn=%u ok=%d\n", (unsigned)appCfg.lastAnimId, (unsigned)brightness, (unsigned)appCfg.powerOn, (int)ok);
     return ok;
 }
 
 bool AppManager::loadState() {
     bool ok = storage ? storage->loadApp(appCfg) : false;
+    if (!ok) {
+        // Default behavior for first boot with empty storage: power on.
+        appCfg.powerOn = 1;
+        appCfg.lastAnimId = 0;
+    }
     // Клампинг яркости.
     uint16_t b = appCfg.masterBrightness;
     if (b < APP_BRIGHTNESS_MIN) b = APP_BRIGHTNESS_MIN;
@@ -458,6 +501,6 @@ bool AppManager::loadState() {
     }
     // Установить анимацию по ID, если доступно.
     if (animMgr && appCfg.lastAnimId != 0) animMgr->setAnimation(appCfg.lastAnimId);
-    DBG_PRINTF("[NVS] load app: animId=%u brightness=%u ok=%d\n", (unsigned)appCfg.lastAnimId, (unsigned)brightness, (int)ok);
+    DBG_PRINTF("[NVS] load app: animId=%u brightness=%u powerOn=%u ok=%d\n", (unsigned)appCfg.lastAnimId, (unsigned)brightness, (unsigned)appCfg.powerOn, (int)ok);
     return ok;
 }
