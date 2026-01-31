@@ -59,7 +59,10 @@ AppManager app(animMgr, rotary, matrix, storage);
 void setup() {
 	#if LOG_ENABLED
 	Serial.begin(115200);
-	while (!Serial) { delay(10); }
+	// Do not block waiting for a host serial connection — allow the device to run
+	// even when no serial console is attached.
+	// If you need to wait for a USB CDC connection on native USB boards,
+	// enable an explicit build-time flag and implement a conditional wait.
 	LOG_PRINTLN("\n\n========================================");
 	LOG_PRINTLN("  LumioMonolith - LED Matrix Animation System");
 	LOG_PRINTLN("========================================");
