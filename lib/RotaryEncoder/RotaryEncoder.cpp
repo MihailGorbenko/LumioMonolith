@@ -213,7 +213,7 @@ void RotaryEncoder::update() {
     if (sw != _lastRawSw) {
         _lastRawSw = sw;
         _lastSwMillis = now;
-    } else if (sw != _swState && (now - _lastSwMillis) > DEBOUNCE_MS) {
+    } else if (sw != _swState && (now - _lastSwMillis) > ROTARY_BTN_DEBOUNCE_MS) {
         _swState = sw;
         if (!_btnDown && _swState == LOW) {
             _btnDown = true;

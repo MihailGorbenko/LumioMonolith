@@ -1,4 +1,4 @@
-//#pragma once
+#pragma once
 #pragma once
 #include <Arduino.h>
 #include <vector>
@@ -26,7 +26,7 @@
 
 // Диапазон мастер-яркости (линейный ввод пользователя).
 #ifndef APP_BRIGHTNESS_MIN
-#define APP_BRIGHTNESS_MIN 7
+#define APP_BRIGHTNESS_MIN 15
 #endif
 #ifndef APP_BRIGHTNESS_MAX
 #define APP_BRIGHTNESS_MAX 255
@@ -34,13 +34,17 @@
 
 // Тайм-ауты и длительности (мс).
 #ifndef APP_IDLE_TIMEOUT_MS
-#define APP_IDLE_TIMEOUT_MS 30000
+#define APP_IDLE_TIMEOUT_MS 60000
 #endif
 #ifndef APP_STARTUP_OVERLAY_MS
 #define APP_STARTUP_OVERLAY_MS 3000
 #endif
 #ifndef APP_STARTUP_RENDER_DELAY_MS
-#define APP_STARTUP_RENDER_DELAY_MS 2000
+#define APP_STARTUP_RENDER_DELAY_MS 500
+#endif
+// Максимальный прирост прогресса стартап-оверлея за один кадр (0..255)
+#ifndef APP_STARTUP_MAX_STEP
+#define APP_STARTUP_MAX_STEP 16
 #endif
 #ifndef APP_POWEROFF_OVERLAY_START_MS
 #define APP_POWEROFF_OVERLAY_START_MS 500
@@ -50,6 +54,16 @@
 #endif
 #ifndef APP_POWEROFF_HOLD_THRESHOLD_MS
 #define APP_POWEROFF_HOLD_THRESHOLD_MS 2500
+#endif
+
+// Защита от повторных кликов: минимальный интервал между RELEASE событиями (мс).
+#ifndef APP_BUTTON_GUARD_MS
+#define APP_BUTTON_GUARD_MS 600
+#endif
+
+// Защита от многократных смен состояний: минимальный интервал между сменами (мс).
+#ifndef APP_STATE_CHANGE_GUARD_MS
+#define APP_STATE_CHANGE_GUARD_MS 250
 #endif
 
 // Шаги яркости: полный диапазон за указанное число «тиков» медленного вращения.
@@ -63,6 +77,7 @@
 #endif
 
 class AppManager : public RotaryEncoder::IEncoderListener {
+    bool stateChangedThisFrame = false;
 public:
     explicit AppManager(AnimationManager& am, RotaryEncoder& enc, LedMatrix& m, StorageManager& st);
 
@@ -80,7 +95,13 @@ public:
 
 private:
     // Состояния конечного автомата приложения.
-    enum class State { Startup, Shutdown, Animation, Color, Brightness, Off };
+    enum class State { None, Startup, Shutdown, Animation, Color, Brightness, Off };
+    // Отложенный переход состояния
+    State pendingState = State::None;
+
+    // FSM click lock: строго один переход на клик
+    bool fsmClickLock = false;
+    void requestState(State s);
 
     // Внешние зависимости.
     LedMatrix* matrix;
@@ -95,6 +116,9 @@ private:
     bool btnDown;
     unsigned long btnStartMs;
     unsigned long lastActivityMs;
+    unsigned long lastBtnReleaseMs;
+    unsigned long lastBtnPressMs;
+    unsigned long lastStateChangeMs;
 
     // Управление частотой кадров.
     unsigned long lastFrameMs;
@@ -109,11 +133,17 @@ private:
     unsigned long shutdownBeginMs;
     uint8_t shutdownStartProg; // стартовое значение прогресса при входе в Shutdown (0..255)
     uint8_t overlayOffProg;    // текущее установленное значение прогресса (0..255)
+    // Плавное наращивание прогресса стартап-оверлея
+    uint8_t overlayOnProg;     // текущий прогресс стартап-оверлея (0..255)
+    unsigned long lastOverlayOnMs; // время последнего обновления прогресса
 
     // Последовательность запуска.
     unsigned long startupBeginMs;
     bool startupLoadedAnim;
     unsigned long startupLoadedMs;
+
+    // Флаг: клик уже обработан (защита от повторных RELEASE от дребезга)
+    bool clickHandled = false;
 
     // Базовое значение энкодера для расчёта дельты.
     int encBaseValue;
@@ -126,6 +156,8 @@ private:
 
     // Конфигурация приложения.
     AppCfg appCfg;
+    AppCfg savedAppCfg;     // последний сохранённый снимок приложения
+    bool savedAppCfgInit;   // признак инициализации снимка
 
     // Вспомогательные методы.
     void setState(State s);

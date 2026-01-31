@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <vector>
 #include "../../src/debug.hpp"
+// (No need to include AnimConfig; StorageManager operates on ISerializable)
 
 bool StorageManager::saveApp(const ISerializable& obj) {
     return saveSerializable("app", "cfg", obj);

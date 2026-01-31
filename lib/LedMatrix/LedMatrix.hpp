@@ -7,7 +7,10 @@
 #define MATRIX_HEIGHT 5
 #define NUM_LEDS (MATRIX_WIDTH * MATRIX_HEIGHT)
 #define DEF_BRIGHTNESS 128
+// Allow overriding LED data pin via build flags (e.g., -DLED_PIN=8).
+#ifndef LED_PIN
 #define LED_PIN 6
+#endif
 
 // Класс управления светодиодной матрицей.
 class LedMatrix {

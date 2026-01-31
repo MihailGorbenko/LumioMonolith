@@ -25,6 +25,9 @@ AppManager::AppManager(AnimationManager& am, RotaryEncoder& enc, LedMatrix& m, S
       btnDown(false),
       btnStartMs(0),
       lastActivityMs(0),
+    lastBtnReleaseMs(0),
+    lastBtnPressMs(0),
+    lastStateChangeMs(0),
       lastFrameMs(0),
       frameIntervalMs(0),
       powerOnAnim(m),
@@ -34,11 +37,15 @@ AppManager::AppManager(AnimationManager& am, RotaryEncoder& enc, LedMatrix& m, S
             shutdownBeginMs(0),
             shutdownStartProg(255),
             overlayOffProg(255),
+    overlayOnProg(0),
+    lastOverlayOnMs(0),
       startupBeginMs(0),
       startupLoadedAnim(false),
       startupLoadedMs(0),
       encBaseValue(0),
-    brightness(APP_BRIGHTNESS_MIN),
+            savedAppCfgInit(false),
+        clickHandled(false),
+        brightness(APP_BRIGHTNESS_MIN),
     brightTicks(0),
     colorTicks(0) {
     unsigned long interval = (APP_FPS > 0) ? (1000UL / (unsigned long)APP_FPS) : 33UL;
@@ -60,13 +67,25 @@ void AppManager::begin() {
         gammaLUT[i] = (uint8_t)v;
     }
 
-    loadState();
+    DBG_PRINTLN("[AppManager] Calling loadState (loadApp)...");
+    bool okLoad = loadState();
+    DBG_PRINTF("[NVS] load app: animId=%u brightness=%u powerOn=%u ok=%d\n",
+               (unsigned)appCfg.lastAnimId, (unsigned)brightness, (unsigned)appCfg.powerOn, (int)okLoad);
     applyBrightness();
 
-    // Загрузка конфигурации текущей анимации (если есть).
+    // Зафиксировать начальный снимок сохранённой конфигурации.
+    savedAppCfg = appCfg;
+    savedAppCfgInit = true;
+
+    // Загрузка конфигурации текущей анимации (если есть) и отметка как чистой.
     if (animMgr) {
         AnimationBase* cur = animMgr->getCurrentAnimation();
-        if (cur && storage) storage->loadAnimation(*cur);
+        if (cur && storage) {
+            bool okAnim = storage->loadAnimation(*cur);
+            DBG_PRINTF("[NVS] load anim: id=%u hue=%u ok=%d\n",
+                       (unsigned)cur->getId(), (unsigned)cur->getConfig().hue, (int)okAnim);
+            cur->clearConfigDirty();
+        }
     }
 
     // Инициализация «тиков» из загруженной яркости.
@@ -91,6 +110,9 @@ void AppManager::begin() {
 void AppManager::update() {
     unsigned long now = millis();
 
+    // Сброс флага изменений состояния для текущего кадра
+    stateChangedThisFrame = false;
+
     // Обновление состояния энкодера.
     if (encoder) encoder->update();
 
@@ -110,14 +132,31 @@ void AppManager::update() {
     if ((due && canRender) || overlayOnActive || overlayOffActive || state == State::Startup) {
         renderFrame();
     }
+
+    // Выполнить отложенный переход состояния (только один за кадр)
+    if (pendingState != State::None) {
+        setState(pendingState);
+        pendingState = State::None;
+        stateChangedThisFrame = true;
+    }
 }
 
 void AppManager::setState(State s) {
     if (state == s) return;
+    DBG_PRINTF("[FSM] setState: %d -> %d\n", (int)state, (int)s);
     onExit(state);
     prevState = state;
     state = s;
     onEnter(state);
+}
+
+void AppManager::requestState(State s) {
+    if (pendingState == State::None && !stateChangedThisFrame) {
+        pendingState = s;
+        DBG_PRINTF("[FSM] requestState: %d -> %d\n", (int)state, (int)s);
+    } else {
+        DBG_PRINTF("[FSM] requestState IGNORED: %d -> %d\n", (int)state, (int)s);
+    }
 }
 
 void AppManager::onEnter(State s) {
@@ -130,14 +169,23 @@ void AppManager::onEnter(State s) {
             break;
 
         case State::Startup:
-            startupBeginMs = millis();
             startupLoadedAnim = false;
             overlayOnActive = true;
             overlayOffActive = false;
+            // Немедленно подготовить оверлей: прогресс 0 и чёрный кадр, чтобы избежать вспышки.
+            overlayOnProg = 0;
+            powerOnAnim.setProgress(overlayOnProg);
+            if (matrix) { matrix->clear(); matrix->update(); }
             // Пометить состояние питания как включённое и сохранить.
             appCfg.powerOn = 1;
             saveState();
+            // Старт измерения времени оверлея после потенциально долгих операций сохранения.
+            startupBeginMs = millis();
+            lastOverlayOnMs = startupBeginMs;
+            startupLoadedMs = 0;
             DBG_PRINTLN("[FSM] Enter STARTUP");
+            DBG_PRINTF("[Startup] appCfg: animId=%u brightness=%u powerOn=%u\n",
+                       (unsigned)appCfg.lastAnimId, (unsigned)brightness, (unsigned)appCfg.powerOn);
             break;
 
         case State::Brightness:
@@ -219,10 +267,14 @@ void AppManager::onExit(State s) {
             }
             break;
         case State::Color: {
-            // Сохранить конфигурацию текущей анимации при выходе.
+            // Сохранить конфигурацию текущей анимации при выходе, только если она изменена.
             if (animMgr) {
                 AnimationBase* cur = animMgr->getCurrentAnimation();
-                if (cur && storage) storage->saveAnimation(*cur);
+                if (cur && storage && cur->isConfigDirty()) {
+                    if (storage->saveAnimation(*cur)) {
+                        cur->clearConfigDirty();
+                    }
+                }
             }
             // Восстановить границы энкодера на значения по умолчанию с кольцом.
             if (encoder) {
@@ -254,10 +306,14 @@ void AppManager::handleIdle(unsigned long now) {
             } else if (state == State::Color) {
                 if (animMgr) {
                     AnimationBase* cur = animMgr->getCurrentAnimation();
-                    if (cur && storage) storage->saveAnimation(*cur);
+                    if (cur && storage && cur->isConfigDirty()) {
+                        if (storage->saveAnimation(*cur)) {
+                            cur->clearConfigDirty();
+                        }
+                    }
                 }
             }
-            setState(State::Brightness);
+            requestState(State::Brightness);
         }
     }
 }
@@ -267,55 +323,55 @@ void AppManager::updateOverlays(unsigned long now) {
     if (state == State::Shutdown) {
         if (overlayOffActive) {
             unsigned long dt = now - shutdownBeginMs;
-            // Линейно уменьшаем прогресс до 0 за APP_POWEROFF_OVERLAY_MS
             unsigned long dec = (APP_POWEROFF_OVERLAY_MS > 0) ? ((dt * 255UL) / (unsigned long)APP_POWEROFF_OVERLAY_MS) : 255UL;
             uint8_t prog = (dec >= shutdownStartProg) ? 0 : (uint8_t)(shutdownStartProg - dec);
             powerOffAnim.setProgress(prog);
             overlayOffProg = prog;
-            if (prog == 0) {
-                overlayOffActive = false;
-                setState(State::Off);
-            }
+                if (prog == 0) {
+                    overlayOffActive = false;
+                    requestState(State::Off);
+                }
         }
         return;
     }
 
     // Прогресс оверлея запуска и последовательность действий.
     if (state == State::Startup) {
-        unsigned long dt = now - startupBeginMs;
-        if (dt <= APP_STARTUP_OVERLAY_MS) {
-            // Прогресс 0..255 за 3 секунды.
-            uint8_t prog = (uint8_t)((dt * 255UL) / (unsigned long)APP_STARTUP_OVERLAY_MS);
-            powerOnAnim.setProgress(prog);
-            overlayOnActive = true;
-        } else {
-            overlayOnActive = false;
+        // Плавное накопление прогресса с ограничением шага за кадр, без мгновенного перехода на 255.
+        unsigned long dtFrame = now - lastOverlayOnMs;
+        lastOverlayOnMs = now;
+        unsigned long inc = (APP_STARTUP_OVERLAY_MS > 0) ? ((dtFrame * 255UL) / (unsigned long)APP_STARTUP_OVERLAY_MS) : 1UL;
+        if (inc == 0UL) inc = 1UL; // гарантировать поступательное увеличение
+        if (inc > (unsigned long)APP_STARTUP_MAX_STEP) inc = (unsigned long)APP_STARTUP_MAX_STEP;
+        unsigned int next = (unsigned int)overlayOnProg + (unsigned int)inc;
+        if (next > 255U) next = 255U;
+        overlayOnProg = (uint8_t)next;
+        powerOnAnim.setProgress(overlayOnProg);
+        overlayOnActive = true;
+
+        // Когда достигли полного прогресса, держим оверлей и выполняем пост-задержку.
+        if (overlayOnProg >= 255U) {
             if (!startupLoadedAnim) {
-                // Загрузить последнюю анимацию по ID или оставить дефолтную.
+                // Загрузить последнюю анимацию по ID (рендер не начнётся, пока активен оверлей).
                 if (animMgr && appCfg.lastAnimId != 0) animMgr->setAnimation(appCfg.lastAnimId);
                 startupLoadedAnim = true;
                 startupLoadedMs = now;
             }
-            // Подождать 2 секунды, начать рендер и перейти в Brightness.
+            // По истечении задержки — снять оверлей и перейти в Brightness.
             if (startupLoadedAnim && (now - startupLoadedMs) >= APP_STARTUP_RENDER_DELAY_MS) {
-                setState(State::Brightness);
+                overlayOnActive = false;
+                requestState(State::Brightness);
             }
         }
     }
 
-    // Оверлей выключения во время удержания кнопки.
+    // Оверлей выключения во время удержания кнопки: показываем, но не переходим в Shutdown до отпускания.
     if (btnDown && state != State::Off && state != State::Shutdown) {
         unsigned long held = now - btnStartMs;
-        if (held >= APP_POWEROFF_HOLD_THRESHOLD_MS) {
-            // Переход в состояние Shutdown.
-            setState(State::Shutdown);
-            btnDown = false; // consume
-        } else if (held >= APP_POWEROFF_OVERLAY_START_MS) {
-            // Прогресс оверлея: 2 секунды после 0.5 секунды удержания.
+        if (held >= APP_POWEROFF_OVERLAY_START_MS) {
             unsigned long overlayDt = held - APP_POWEROFF_OVERLAY_START_MS;
             if (overlayDt > APP_POWEROFF_OVERLAY_MS) overlayDt = APP_POWEROFF_OVERLAY_MS;
             uint8_t prog = (uint8_t)((overlayDt * 255UL) / (unsigned long)APP_POWEROFF_OVERLAY_MS);
-            // Обратный прогресс: 255→0 — визуальное гашение.
             uint8_t negProg = (uint8_t)(255 - prog);
             powerOffAnim.setProgress(negProg);
             overlayOffActive = true;
@@ -366,39 +422,94 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
     unsigned long now = millis();
     lastActivityMs = now;
 
+    // encoder events logging removed to reduce serial noise
+
     if (ev == RotaryEncoder::PRESS_START) {
-        btnDown = true;
-        btnStartMs = now;
-        return;
+        // Защита от дребезга: игнорировать повторные PRESS_START в течение APP_BUTTON_GUARD_MS
+        if ((now - lastBtnPressMs) < APP_BUTTON_GUARD_MS) {
+            return;
+        }
+        // Также игнорировать PRESS_START, если только что был RELEASE (ложные повторные клики).
+        if ((now - lastBtnReleaseMs) < APP_BUTTON_GUARD_MS) {
+            return;
+        }
+            if (!btnDown) {
+                // Только на первый настоящий press открываем FSM lock
+                fsmClickLock = false;
+            }
+            btnDown = true;
+            btnStartMs = now;
+            lastBtnPressMs = now;
+            // Reset click handled flag for the new physical press.
+            clickHandled = false;
+            // Cancel any pending state transition from a предыдущий click
+            pendingState = State::None;
+            return;
     }
 
     if (ev == RotaryEncoder::PRESS_END) {
+        // Ignore repeated RELEASE events for the same physical click.
+        if (clickHandled) {
+            return;
+        }
+        clickHandled = true; // Set immediately to block all further PRESS_ENDs for this click
+
+        // Обрабатывать release только если был активный press.
+        if (!btnDown) {
+            return;
+        }
         unsigned long held = now - btnStartMs;
+
+        // Защита от дребезга: игнорировать повторные RELEASE в течение APP_BUTTON_GUARD_MS.
+        if ((now - lastBtnReleaseMs) < APP_BUTTON_GUARD_MS) {
+            return;
+        }
+        lastBtnReleaseMs = now;
         btnDown = false;
 
+        // Сохраняем логическое состояние на момент клика, чтобы не зависеть от отложенных переходов
+        State logicalState = state;
+
+        // Длинное удержание: подтверждаем переход в Shutdown только при отпускании.
+        if (held >= APP_POWEROFF_HOLD_THRESHOLD_MS) {
+            requestState(State::Shutdown);
+            fsmClickLock = true;
+            lastStateChangeMs = now;
+            return;
+        }
+
         // Из Off: короткое нажатие — переход в Startup.
-        if (state == State::Off) {
+            if (logicalState == State::Off) {
             if (held < APP_POWEROFF_OVERLAY_START_MS) {
-                setState(State::Startup);
+                requestState(State::Startup);
+                fsmClickLock = true;
+                lastStateChangeMs = now;
             }
             return;
         }
 
-        // Отпускание до порога выключения — возврат в Brightness.
+        // Отпускание до порога выключения: не выполняем переход, только снимаем оверлей.
         if (held >= APP_POWEROFF_OVERLAY_START_MS && held < APP_POWEROFF_HOLD_THRESHOLD_MS) {
-            setState(State::Brightness);
+            // Оверлей выключения будет снят в updateOverlays.
             return;
         }
 
         // Длинное удержание обработано в updateOverlays (переход в Shutdown).
-        if (state == State::Shutdown) return;
+        if (logicalState == State::Shutdown) return;
 
         // Короткое нажатие по кругу: Animation → Color → Brightness → Animation.
-        if (held < APP_POWEROFF_OVERLAY_START_MS) {
-            if (state == State::Animation) setState(State::Color);
-            else if (state == State::Color) setState(State::Brightness);
-            else if (state == State::Brightness) setState(State::Animation);
-            else setState(State::Brightness);
+            if (held < APP_POWEROFF_OVERLAY_START_MS) {
+            if ((now - lastStateChangeMs) < APP_STATE_CHANGE_GUARD_MS) {
+                return;
+            }
+            // Always advance to the next state in the cycle, never skip.
+            State next = State::Brightness;
+            if (logicalState == State::Animation) next = State::Color;
+            else if (logicalState == State::Color) next = State::Brightness;
+            else if (logicalState == State::Brightness) next = State::Animation;
+            requestState(next);
+            fsmClickLock = true;
+            lastStateChangeMs = now;
         }
         return;
     }
@@ -463,18 +574,36 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
 }
 
 bool AppManager::saveState() {
-    // Сохранить яркость (0..255) и ID последней анимации.
-    appCfg.masterBrightness = (uint16_t)brightness;
+    // Собрать снимок актуальных значений.
+    AppCfg snap;
+    snap.masterBrightness = (uint16_t)brightness;
     if (animMgr) {
         AnimationBase* cur = animMgr->getCurrentAnimation();
-        appCfg.lastAnimId = cur ? cur->getId() : 0;
+        snap.lastAnimId = cur ? cur->getId() : 0;
     } else {
-        appCfg.lastAnimId = 0;
+        snap.lastAnimId = 0;
     }
-    // Зафиксировать текущее состояние питания (не Off/Shutdown => on).
-    appCfg.powerOn = (state != State::Off && state != State::Shutdown) ? 1 : 0;
-    bool ok = storage ? storage->saveApp(appCfg) : false;
-    DBG_PRINTF("[NVS] save app: animId=%u brightness=%u powerOn=%u ok=%d\n", (unsigned)appCfg.lastAnimId, (unsigned)brightness, (unsigned)appCfg.powerOn, (int)ok);
+    // Текущее состояние питания (не Off/Shutdown => on).
+    snap.powerOn = (state != State::Off && state != State::Shutdown) ? 1 : 0;
+
+    // Сохранение только при изменении.
+    if (savedAppCfgInit &&
+        snap.masterBrightness == savedAppCfg.masterBrightness &&
+        snap.lastAnimId == savedAppCfg.lastAnimId &&
+        snap.powerOn == savedAppCfg.powerOn) {
+        // skip verbose NVS log
+        appCfg = snap;
+        return true;
+    }
+
+    bool ok = storage ? storage->saveApp(snap) : false;
+    DBG_PRINTF("[NVS] save app: animId=%u brightness=%u powerOn=%u ok=%d\n",
+               (unsigned)snap.lastAnimId, (unsigned)snap.masterBrightness, (unsigned)snap.powerOn, (int)ok);
+    if (ok) {
+        savedAppCfg = snap;
+        savedAppCfgInit = true;
+        appCfg = snap;
+    }
     return ok;
 }
 

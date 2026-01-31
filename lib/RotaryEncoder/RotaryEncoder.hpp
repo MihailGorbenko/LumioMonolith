@@ -2,10 +2,21 @@
 #define ROTARY_ENCODER_HPP
 #include <Arduino.h>
 
-// Пины энкодера задаются здесь (дефайнами внутри файла).
+// Пины энкодера; можно переопределить через build_flags (-DROTARY_...=pin).
+#ifndef ROTARY_CLK_PIN
 #define ROTARY_CLK_PIN 4
+#endif
+#ifndef ROTARY_DT_PIN
 #define ROTARY_DT_PIN 3
+#endif
+#ifndef ROTARY_SW_PIN
 #define ROTARY_SW_PIN 5
+#endif
+
+// Настройки подавления дребезга кнопки; можно переопределить через build_flags.
+#ifndef ROTARY_BTN_DEBOUNCE_MS
+#define ROTARY_BTN_DEBOUNCE_MS 120
+#endif
 
 // Границы энкодера по умолчанию (можно переопределить до подключения заголовка).
 #ifndef ENC_MIN
@@ -65,7 +76,6 @@ private:
     int _swState;
     bool _btnDown;
 
-    const unsigned long DEBOUNCE_MS = 50;
 
     void notify(Event ev, int value);
 

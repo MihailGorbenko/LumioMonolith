@@ -3,7 +3,7 @@
 #include <cstdio>
 
 AnimationBase::AnimationBase(uint8_t defH, uint16_t id)
-    : animCfg(defH), animId(id) {}
+    : animCfg(defH), animId(id), configDirty(false) {}
 
 
 void AnimationBase::makeNvsKeyById(char* out, size_t outSize) const {

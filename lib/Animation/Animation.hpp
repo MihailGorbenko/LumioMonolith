@@ -20,13 +20,21 @@ class AnimationBase {
 protected:
 	AnimConfig animCfg;
 	uint16_t animId;
+	bool configDirty;
 
 public:
 	// Принимает оттенок по умолчанию и идентификатор анимации (матрица передаётся в render)
 	explicit AnimationBase(uint8_t defH = 0, uint16_t id = 0);
 
 	// Установить оттенок (0..255) — частый вызов, без virtual
-	inline void setHue(uint8_t h) { animCfg.setHue(h); }
+	inline void setHue(uint8_t h) {
+		if (h != animCfg.hue) {
+			animCfg.setHue(h);
+			configDirty = true;
+		}
+	}
+	inline bool isConfigDirty() const { return configDirty; }
+	inline void clearConfigDirty() { configDirty = false; }
 
 	// Доступ к конфигурации (хранит только оттенок)
 	inline const AnimConfig& getConfig() const { return animCfg; }

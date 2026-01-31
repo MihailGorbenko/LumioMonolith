@@ -7,8 +7,15 @@ LedMatrix::LedMatrix() {
 
 void LedMatrix::init() {
     FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000); // Ограничение по питанию.
+    FastLED.setDither(false);                         // Отключаем диффузию, чтобы избежать вспышек при старте.
+    FastLED.setBrightness(0);                         // Стартуем с нулевой яркости, чтобы исключить «вспышку».
     FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
-    FastLED.setBrightness(255); // Используем 255: яркость управляется вручную через masterBrightness и baseLeds.
+    // Немедленно погасить все диоды.
+    fill_solid(leds, NUM_LEDS, CRGB::Black);
+    FastLED.show();
+    // Вернуть системную яркость FastLED к 255: далее используем собственный masterBrightness.
+    FastLED.setBrightness(255);
+    // Очистить буферы и отобразить чёрный кадр.
     clear();
     update();
 }
