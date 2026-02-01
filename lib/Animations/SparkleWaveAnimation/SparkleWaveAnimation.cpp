@@ -4,7 +4,7 @@
 
 SparkleWaveAnimation::SparkleWaveAnimation(uint16_t id)
 		: AnimationBase(SPARKLEWAVE_DEFAULT_HUE, id),
-			sparkleChance(28) {}
+			sparkleChance(0) {}
 
 void SparkleWaveAnimation::render(LedMatrix& m) {
 	m.clear();
@@ -24,14 +24,11 @@ void SparkleWaveAnimation::render(LedMatrix& m) {
 		uint8_t vWave = scale8(ANIMATION_DEFAULT_VAL, qadd8(0, wave));
 		uint8_t hOut = (uint8_t)(animCfg.hue + (wave >> 2));
 
-		// Column-level sparkle decision (removes per-pixel random())
-		uint8_t sparkleBoost = ((((uint8_t)((now >> 3) + x * 73)) & 0xFF) < sparkleChance) ? 120 : 0;
 
 		for (int y = 0; y < hgt; ++y) {
 			// Add slight vertical variation
 			uint8_t vOut = (hgt >= 2) ? ((y == 0) ? vWave : scale8(vWave, 200)) : vWave;
-			// Occasional sparkle boost without per-pixel RNG
-			if (sparkleBoost) vOut = qadd8(vOut, sparkleBoost);
+			// No sparkle boost — flashes removed
 			m.setPixelHSV(x, y, hOut, ANIMATION_DEFAULT_SAT, vOut);
 		}
 	}
