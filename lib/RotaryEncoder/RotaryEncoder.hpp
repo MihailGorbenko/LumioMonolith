@@ -60,6 +60,8 @@ public:
     void setAccelThresholds(unsigned long med_ms, unsigned long fast_ms);
     void setAccelEnabled(bool enabled);
     float getVelocity() const;
+    // Hard reset of transient encoder context used when switching controller modes.
+    void resetContext();
 
 private:
     uint8_t _clkPin, _dtPin, _swPin;

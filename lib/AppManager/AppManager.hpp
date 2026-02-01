@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include <Arduino.h>
 #include <vector>
 #include "../../src/debug.hpp"
@@ -12,19 +11,15 @@
 #include "../Animations/PowerOnAnimation/PowerOnAnimation.hpp"
 #include "AppCfg.hpp"
 
-// Отладка осуществляется через макросы LOG из debug.hpp; локальные флаги не используются.
-
-// Частота кадров (FPS).
+// Config defaults
 #ifndef APP_FPS
 #define APP_FPS 30
 #endif
 
-// Коэффициент гамма-коррекции.
 #ifndef APP_GAMMA
 #define APP_GAMMA 2.2f
 #endif
 
-// Диапазон мастер-яркости (линейный ввод пользователя).
 #ifndef APP_BRIGHTNESS_MIN
 #define APP_BRIGHTNESS_MIN 15
 #endif
@@ -32,7 +27,6 @@
 #define APP_BRIGHTNESS_MAX 255
 #endif
 
-// Тайм-ауты и длительности (мс).
 #ifndef APP_IDLE_TIMEOUT_MS
 #define APP_IDLE_TIMEOUT_MS 60000
 #endif
@@ -42,7 +36,6 @@
 #ifndef APP_STARTUP_RENDER_DELAY_MS
 #define APP_STARTUP_RENDER_DELAY_MS 500
 #endif
-// Максимальный прирост прогресса стартап-оверлея за один кадр (0..255)
 #ifndef APP_STARTUP_MAX_STEP
 #define APP_STARTUP_MAX_STEP 16
 #endif
@@ -56,22 +49,18 @@
 #define APP_POWEROFF_HOLD_THRESHOLD_MS 2500
 #endif
 
-// Защита от повторных кликов: минимальный интервал между RELEASE событиями (мс).
 #ifndef APP_BUTTON_GUARD_MS
 #define APP_BUTTON_GUARD_MS 600
 #endif
 
-// Защита от многократных смен состояний: минимальный интервал между сменами (мс).
 #ifndef APP_STATE_CHANGE_GUARD_MS
 #define APP_STATE_CHANGE_GUARD_MS 250
 #endif
 
-// Шаги яркости: полный диапазон за указанное число «тиков» медленного вращения.
 #ifndef APP_BRIGHTNESS_TICKS
 #define APP_BRIGHTNESS_TICKS 30
 #endif
 
-// Шаги оттенка: полный проход по hue за указанное число «тиков».
 #ifndef APP_COLOR_TICKS
 #define APP_COLOR_TICKS 60
 #endif
@@ -94,72 +83,76 @@ public:
     StorageManager* storage;
 
 private:
-    // Состояния конечного автомата приложения.
+    // --- FSM ---
     enum class State { None, Startup, Shutdown, Animation, Color, Brightness, Off };
-    // Отложенный переход состояния
+    enum class StateReqSource { User, Overlay, Idle, System };
+
     State pendingState = State::None;
+    StateReqSource pendingStateSource = StateReqSource::System;
 
-    // FSM click lock: строго один переход на клик
-    bool fsmClickLock = false;
-    void requestState(State s);
+    // Click/rotation protections
+    bool blockRotationThisFrame = false;
+    bool blockRotationNextFrame = false;
+    uint32_t clickSeq = 0;
+    uint32_t handledClickSeq = 0;
+    bool fsmLocked = false;
 
-    // Внешние зависимости.
+    void requestState(State s, StateReqSource src = StateReqSource::User);
+
+    // --- External dependencies ---
     LedMatrix* matrix;
     AnimationManager* animMgr;
     RotaryEncoder* encoder;
 
-    // Текущее состояние автомата.
+    // --- FSM state ---
     State state;
     State prevState;
 
-    // Ввод и таймеры.
+    // --- Input / debounce / click timing ---
     bool btnDown;
     unsigned long btnStartMs;
     unsigned long lastActivityMs;
+    unsigned long lastEncoderActivityMs;
     unsigned long lastBtnReleaseMs;
     unsigned long lastBtnPressMs;
     unsigned long lastStateChangeMs;
+    StateReqSource lastStateChangeSource = StateReqSource::System;
 
-    // Управление частотой кадров.
+    // --- Rendering / timing ---
     unsigned long lastFrameMs;
     unsigned long frameIntervalMs;
 
-    // Оверлей-анимации включения и выключения.
+    // --- Overlay animations & shutdown ---
     PowerOnAnimation powerOnAnim;
     PowerOffAnimation powerOffAnim;
     bool overlayOnActive;
     bool overlayOffActive;
-    // Плейаут оверлея выключения после достижения порога удержания
     unsigned long shutdownBeginMs;
     uint8_t shutdownStartProg; // стартовое значение прогресса при входе в Shutdown (0..255)
     uint8_t overlayOffProg;    // текущее установленное значение прогресса (0..255)
-    // Плавное наращивание прогресса стартап-оверлея
     uint8_t overlayOnProg;     // текущий прогресс стартап-оверлея (0..255)
     unsigned long lastOverlayOnMs; // время последнего обновления прогресса
 
-    // Последовательность запуска.
+    // --- Startup sequence ---
     unsigned long startupBeginMs;
     bool startupLoadedAnim;
     unsigned long startupLoadedMs;
 
-    // Флаг: клик уже обработан (защита от повторных RELEASE от дребезга)
-    bool clickHandled = false;
-
-    // Базовое значение энкодера для расчёта дельты.
+    // --- Encoder base/value ---
     int encBaseValue;
 
-    // Яркость (линейный ввод 0..255) с применением гамма-LUT.
+    // --- Brightness / color ---
     uint8_t brightness;
     std::vector<uint8_t> gammaLUT; // size 256
     int brightTicks; // 0..APP_BRIGHTNESS_TICKS
     int colorTicks;  // 0..APP_COLOR_TICKS
 
-    // Конфигурация приложения.
+    // --- Persistence / config ---
     AppCfg appCfg;
     AppCfg savedAppCfg;     // последний сохранённый снимок приложения
     bool savedAppCfgInit;   // признак инициализации снимка
 
-    // Вспомогательные методы.
+    // --- Helpers ---
     void setState(State s);
     void onEnter(State s);
     void onExit(State s);
@@ -192,4 +185,6 @@ private:
         if (tt < 0) tt = 0; if (tt > APP_COLOR_TICKS) tt = APP_COLOR_TICKS;
         return tt;
     }
+
 };
+

@@ -71,6 +71,12 @@ void RotaryEncoder::init() {
     _vel = 0.0f;
 }
 
+void RotaryEncoder::resetContext() {
+    _accum = 0;
+    _lastStepMillis = 0;
+    _vel = 0.0f;
+}
+
 void RotaryEncoder::setValue(int v) {
     if (v < _minV) v = _minV;
     if (v > _maxV) v = _maxV;
