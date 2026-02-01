@@ -1,4 +1,4 @@
-#include "PowerOnAnimation.hpp"
+﻿#include "PowerOnAnimation.hpp"
 
 PowerOnAnimation::PowerOnAnimation(LedMatrix& m)
     : matrix(&m),

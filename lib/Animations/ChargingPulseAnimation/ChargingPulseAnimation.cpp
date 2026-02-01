@@ -1,4 +1,4 @@
-#include "ChargingPulseAnimation.hpp"
+﻿#include "ChargingPulseAnimation.hpp"
 #include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 #include <math.h>

@@ -1,4 +1,4 @@
-#include "SegmentRunnerAnimation.hpp"
+﻿#include "SegmentRunnerAnimation.hpp"
 #include "../../LedMatrix/LedMatrix.hpp"
 
 SegmentRunnerAnimation::SegmentRunnerAnimation(uint16_t id)
@@ -22,7 +22,7 @@ void SegmentRunnerAnimation::render(LedMatrix& m) {
     for (int x = 0; x < w; ++x) {
         m.setPixelHSV(x, head, animCfg.hue, ANIMATION_DEFAULT_SAT, ANIMATION_DEFAULT_VAL);
     }
-   
+
 }
 
 // Base class provides ISerializable

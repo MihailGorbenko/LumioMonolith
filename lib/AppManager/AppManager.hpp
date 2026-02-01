@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <Arduino.h>
 #include <vector>
 #include "../../src/debug.hpp"
@@ -187,4 +187,3 @@ private:
     }
 
 };
-

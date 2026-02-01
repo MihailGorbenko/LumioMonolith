@@ -1,4 +1,4 @@
-#ifndef POWERON_ANIMATION_HPP
+﻿#ifndef POWERON_ANIMATION_HPP
 #define POWERON_ANIMATION_HPP
 
 #include <Arduino.h>

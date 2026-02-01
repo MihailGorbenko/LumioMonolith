@@ -1,4 +1,4 @@
-#ifndef POWEROFF_ANIMATION_HPP
+﻿#ifndef POWEROFF_ANIMATION_HPP
 #define POWEROFF_ANIMATION_HPP
 
 #include <Arduino.h>
@@ -35,4 +35,3 @@ private:
 };
 
 #endif // POWEROFF_ANIMATION_HPP
-

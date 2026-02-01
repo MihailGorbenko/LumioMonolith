@@ -1,4 +1,4 @@
-#include <Arduino.h>
+﻿#include <Arduino.h>
 #include "debug.hpp"
 #include "../lib/LedMatrix/LedMatrix.hpp"
 #include "../lib/RotaryEncoder/RotaryEncoder.hpp"
@@ -19,7 +19,7 @@
 #include "../lib/StorageManager/StorageManager.hpp"
 #include "../lib/AppManager/AppManager.hpp"
 
-// глобальные компоненты
+// Global components
 LedMatrix matrix;
 RotaryEncoder rotary;
 StorageManager storage;
@@ -72,7 +72,7 @@ void setup() {
 	matrix.init();
 	rotary.init();
 	rotary.attachListener(&app);
-	
+
 	// register animations directly via AnimationManager
 	animMgr.addAnimation(&centerPulse);
 	animMgr.addAnimation(&pulseWave);
@@ -85,7 +85,7 @@ void setup() {
 	animMgr.addAnimation(&reactorTurbines);
 	animMgr.addAnimation(&chargingPulse);
 	animMgr.addAnimation(&rainbow);
-	
+
 	app.begin();
 
 	#if LOG_ENABLED

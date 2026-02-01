@@ -1,4 +1,4 @@
-#include "CenterPulseAnimation.hpp"
+﻿#include "CenterPulseAnimation.hpp"
 #include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
@@ -42,5 +42,5 @@ void CenterPulseAnimation::render(LedMatrix& m) {
             m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vRow);
         }
     }
-    
+
 }

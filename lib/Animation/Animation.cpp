@@ -1,4 +1,4 @@
-#include "Animation.hpp"
+﻿#include "Animation.hpp"
 #include <cstring>
 #include <cstdio>
 
@@ -15,4 +15,3 @@ void AnimationBase::makeNvsKeyById(char* out, size_t outSize) const {
     std::snprintf(out, outSize, "a%u", (unsigned)animId);
     out[outSize - 1] = '\0';
 }
-

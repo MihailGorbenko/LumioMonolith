@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <Arduino.h>
 
 // Base class for overlay/system animations rendered without passing LedMatrix in render()
@@ -9,5 +9,5 @@ public:
 
     // Optional hooks for overlays that support progress or color
     virtual void setProgress(uint8_t) {}
-    
+
 };

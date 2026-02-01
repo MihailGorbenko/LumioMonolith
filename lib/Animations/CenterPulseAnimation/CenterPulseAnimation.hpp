@@ -1,4 +1,4 @@
-#ifndef CENTER_PULSE_ANIMATION_HPP
+﻿#ifndef CENTER_PULSE_ANIMATION_HPP
 #define CENTER_PULSE_ANIMATION_HPP
 
 #include <Arduino.h>

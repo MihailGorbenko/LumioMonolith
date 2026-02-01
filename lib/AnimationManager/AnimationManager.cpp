@@ -1,4 +1,4 @@
-#include "AnimationManager.hpp"
+﻿#include "AnimationManager.hpp"
 
 void AnimationManager::addAnimation(AnimationBase* a) {
     if (!a) return;

@@ -1,4 +1,4 @@
-#ifndef ANIMATION_HPP
+﻿#ifndef ANIMATION_HPP
 #define ANIMATION_HPP
 #include <Arduino.h>
 #include <cstring>

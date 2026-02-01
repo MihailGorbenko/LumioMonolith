@@ -1,4 +1,4 @@
-#ifndef STARS_ANIMATION_HPP
+﻿#ifndef STARS_ANIMATION_HPP
 #define STARS_ANIMATION_HPP
 
 #include <Arduino.h>
@@ -56,7 +56,7 @@ private:
 	int starCount;
 	// время последнего кадра для dt-зависимого движения
 	uint32_t lastMillis = 0;
-	
+
 
 	// вспомогательные
 	void randomizeStar(Star& s, int w, int h);

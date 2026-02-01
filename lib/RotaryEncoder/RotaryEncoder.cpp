@@ -1,4 +1,4 @@
-#include "RotaryEncoder.hpp"
+﻿#include "RotaryEncoder.hpp"
 #include <stdint.h>
 #include <stdlib.h> // abs(int).
 
@@ -113,7 +113,7 @@ void RotaryEncoder::detachListener(IEncoderListener* l) {
         }
     }
 }
- 
+
 void RotaryEncoder::notify(Event ev, int value) {
     // Безопасная итерация: проверяем nullptr на каждом шаге (слушатель может отписаться во время коллбэка).
     for (int i = 0; i < _listenerCount; ++i) {
@@ -176,7 +176,7 @@ void RotaryEncoder::update() {
                     // Порог ускорения в шагах/сек.
                     float fastThresholdVel = 1000.0f / (float)_accelFastMs;
                     float medThresholdVel = 1000.0f / (float)_accelMedMs;
-                    
+
                     if (inst_vel >= fastThresholdVel) mult = _accelFastMult;
                     else if (inst_vel >= medThresholdVel) mult = _accelMedMult;
                 }

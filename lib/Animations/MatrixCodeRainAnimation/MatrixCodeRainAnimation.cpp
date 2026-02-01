@@ -1,4 +1,4 @@
-#include "MatrixCodeRainAnimation.hpp"
+﻿#include "MatrixCodeRainAnimation.hpp"
 #include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
@@ -25,10 +25,7 @@ void MatrixCodeRainAnimation::render(LedMatrix& m) {
         tailLens.assign(numCols, 2);
         for (int x = 0; x < numCols; ++x) {
             heads[x] = random8(0, (uint8_t)(numRows > 0 ? numRows : 1));
-            // faster per-column speeds with variety
-            // smaller range and allow 1 to make some drops noticeably faster
-            speeds[x] = (uint8_t)random8(1, 7); // 1..6 ticks (lower -> faster)
-            counter[x] = random8(speeds[x]);
+            // per-column timing will be set below (speeds/counter initialized once)
             // tail length 2..3 (random8 upper bound exclusive)
             uint8_t t = (uint8_t)random8(2, 4);
             // Limit tail length relative to available rows so a tail can't fill the
@@ -46,7 +43,7 @@ void MatrixCodeRainAnimation::render(LedMatrix& m) {
     uint32_t now = millis();
     if ((int32_t)(now - nextStepMs) >= 0) {
         nextStepMs = now + stepPeriodMs;
-        // движение вниз по Y: каждая колонка с собственной скоростью
+        // move down along Y: each column steps with its own speed
         for (int x = 0; x < numCols; ++x) {
             // very rare micro acceleration to add subtle life (~1%)
             if (random8(0, 255) < 3) {
@@ -68,7 +65,7 @@ void MatrixCodeRainAnimation::render(LedMatrix& m) {
     }
 
     m.clear();
-    // вертикальный дождь сверху вниз: капли через столбец (чистый цвет)
+    // vertical rain top->down: drops per column (single hue)
     for (int x = 0; x < numCols; ++x) {
         // render only every second column visually to keep the original sparse look
         if ((x & 1) != 0) continue;

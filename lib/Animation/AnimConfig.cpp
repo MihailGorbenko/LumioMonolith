@@ -1,4 +1,4 @@
-#include "AnimConfig.hpp"
+﻿#include "AnimConfig.hpp"
 #include <cstring>
 
 bool AnimConfig::serialize(uint8_t* buf, size_t len) const {

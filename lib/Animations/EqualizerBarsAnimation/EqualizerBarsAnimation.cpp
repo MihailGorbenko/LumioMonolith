@@ -1,20 +1,21 @@
-#include "EqualizerBarsAnimation.hpp"
+﻿#include "EqualizerBarsAnimation.hpp"
 #include <FastLED.h>
 
 EqualizerBarsAnimation::EqualizerBarsAnimation(uint16_t id)
     : AnimationBase(EQ_DEFAULT_HUE, id),
-        speedDiv(2), step(1), nextStepMs(0), stepPeriodMs(30),
+        speedDiv(1), step(1), nextStepMs(0), stepPeriodMs(80),
         numCols(0), numRows(0) {
     int w = 0;
     int h = 0;
-            numCols = min(w > 0 ? w : 1, MATRIX_WIDTH);
+    numCols = min(w > 0 ? w : 1, MATRIX_WIDTH);
     numRows = h > 0 ? h : 1;
-    heights.resize(numCols);
-    velocity.resize(numCols);
-    for (int x = 0; x < numCols; ++x) {
-        heights[x] = random8(0, numRows + 1);
-        velocity[x] = (int8_t)((int8_t)random8(0, 3) - 1); // -1..+1
-    }
+        heights.resize(numCols);
+        targets.resize(numCols);
+        groupTargets = {0,0,0};
+        for (int x = 0; x < numCols; ++x) {
+            heights[x] = (uint8_t)random8(1, numRows + 1);
+            targets[x] = heights[x];
+        }
 }
 
 // configuration setters removed as unused
@@ -29,28 +30,50 @@ void EqualizerBarsAnimation::render(LedMatrix& m) {
         numCols = min(w, MATRIX_WIDTH);
         numRows = h;
         heights.resize(numCols);
-        velocity.resize(numCols);
+        targets.resize(numCols);
         for (int x = 0; x < numCols; ++x) {
-            heights[x] = random8(0, numRows + 1);
-            velocity[x] = (int8_t)((int8_t)random8(0, 3) - 1);
+            heights[x] = (uint8_t)random8(1, numRows + 1);
+            targets[x] = heights[x];
         }
     }
 
     uint32_t now = millis();
     if ((int32_t)(now - nextStepMs) >= 0) {
         nextStepMs = now + (stepPeriodMs * speedDiv);
-        // continuous per-column smooth motion: small random accel, no sudden jumps
+        // Hard digital equalizer model: targets set occasionally; levels move sharply towards target
+        // Update group-level energy for low/mid/high bands
+        // Scales: low = 100%, mid = 80%, high = 60% of random strength
+        for (int g = 0; g < 3; ++g) {
+            uint8_t chance = (g == 0) ? 75 : (g == 1) ? 65 : 45; // slightly reduced activity for medium speed
+            if (random8() < chance) {
+                int base = random8(0, numRows + 1);
+                int scale = (g == 0) ? 100 : (g == 1) ? 80 : 60;
+                int val = (base * scale) / 100;
+                if (val < 1) val = 1;
+                groupTargets[g] = (uint8_t)min(numRows, val);
+            }
+        }
+        // Map group targets to per-column targets with small jitter
         for (int x = 0; x < numCols; ++x) {
-            int8_t dv = (int8_t)((int8_t)random8(0, 3) - 1); // -1..+1
-            velocity[x] = (int8_t)constrain((int)velocity[x] + dv, -2, 2);
-            int nh = (int)heights[x] + (int)velocity[x] * (int)step;
-            if (nh < 0) { nh = 0; velocity[x] = (int8_t)abs(velocity[x]); }
-            if (nh > numRows) { nh = numRows; velocity[x] = (int8_t)(-abs(velocity[x])); }
-            heights[x] = (uint8_t)nh;
+            int g = (x * 3) / max(1, numCols); // 0..2
+            int8_t jitter = (int8_t)random8(0,3) - 1; // -1..+1
+            int v = (int)groupTargets[g] + (int)jitter;
+            if (v < 1) v = 1;
+            if (v > numRows) v = numRows;
+            targets[x] = (uint8_t)v;
+
+            int diff = (int)targets[x] - (int)heights[x];
+            if (diff > 0) {
+                heights[x] = (uint8_t)min((int)numRows, (int)heights[x] + min(diff, 1));
+            } else if (diff < 0) {
+                heights[x] = (uint8_t)max(1, (int)heights[x] - min(-diff, 1));
+            }
+            if (heights[x] < 1) heights[x] = 1;
         }
     }
 
-    m.clear();
+        // Hard clear each frame to avoid any persistence/blur — digital equalizer.
+        m.clear();
     // draw columns from bottom using mapped column count; solid color (no per-pixel gradient)
     for (int x = 0; x < numCols; ++x) {
         uint8_t colHeight = heights[x];
@@ -58,7 +81,6 @@ void EqualizerBarsAnimation::render(LedMatrix& m) {
             bool lit = (y >= (numRows - colHeight)); // bottom-up
             if (lit) {
                 if (animCfg.hue > 250) {
-                    // synchronized ascending rainbow gradient by row (bottom->top) across all columns
                     int rowsRange = (numRows > 1) ? (numRows - 1) : 1;
                     uint8_t posFromBottom = (uint8_t)(numRows - 1 - y); // 0 at bottom -> rowsRange at top
                     uint8_t hOut = (uint8_t)((posFromBottom * 255) / rowsRange);
@@ -68,6 +90,8 @@ void EqualizerBarsAnimation::render(LedMatrix& m) {
                 }
             }
         }
+        // draw sticky peak (one pixel) above the column (if any)
+            // no peaks or persistence — instantaneous digital column
     }
 
 }

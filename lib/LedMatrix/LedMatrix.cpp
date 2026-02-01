@@ -1,4 +1,4 @@
-#include "LedMatrix.hpp"
+﻿#include "LedMatrix.hpp"
 
 
 LedMatrix::LedMatrix() {
@@ -24,6 +24,8 @@ void LedMatrix::clear() {
     fill_solid(baseLeds, NUM_LEDS, CRGB::Black); // Очищаем буфер исходных цветов.
     fill_solid(leds, NUM_LEDS, CRGB::Black);
 }
+
+// fadeAll and clearPixel were removed as unused helpers; keep implementation minimal.
 
 void LedMatrix::update() {
     FastLED.show();
@@ -87,4 +89,3 @@ int LedMatrix::XY(int x, int y) {
         return rowBase + (m_width - 1 - x);
     }
 }
-

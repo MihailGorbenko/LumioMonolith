@@ -1,4 +1,4 @@
-#ifndef ANIM_CONFIG_HPP
+﻿#ifndef ANIM_CONFIG_HPP
 #define ANIM_CONFIG_HPP
 
 #include <cstdint>

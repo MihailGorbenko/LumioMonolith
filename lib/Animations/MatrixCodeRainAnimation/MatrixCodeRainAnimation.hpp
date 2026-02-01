@@ -1,4 +1,4 @@
-#ifndef MATRIX_CODE_RAIN_ANIMATION_HPP
+﻿#ifndef MATRIX_CODE_RAIN_ANIMATION_HPP
 #define MATRIX_CODE_RAIN_ANIMATION_HPP
 #include <Arduino.h>
 #include <vector>

@@ -1,4 +1,4 @@
-#include "AppManager.hpp"
+﻿#include "AppManager.hpp"
 
 #include "../../src/debug.hpp"
 #if LOG_ENABLED

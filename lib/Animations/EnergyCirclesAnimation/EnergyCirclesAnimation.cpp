@@ -1,4 +1,4 @@
-#include "EnergyCirclesAnimation.hpp"
+﻿#include "EnergyCirclesAnimation.hpp"
 #include <math.h>
 #include "../../LedMatrix/LedMatrix.hpp"
 

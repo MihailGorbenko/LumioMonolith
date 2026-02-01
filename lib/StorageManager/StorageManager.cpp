@@ -1,4 +1,4 @@
-#include "StorageManager.hpp"
+﻿#include "StorageManager.hpp"
 #include <Arduino.h>
 #include <cstdio>
 #include <vector>
@@ -66,19 +66,19 @@ bool StorageManager::loadSerializable(const char* ns, const char* key, ISerializ
 }
 
 bool StorageManager::saveAnimation(AnimationBase& anim) {
-    // Используем ключ на основе ID, чтобы соблюдать ограничение длины ключа NVS.
-    char keyBuf[16]; // Максимальная длина ключа NVS — 15 символов (+ NUL).
+    // Use an ID-based key to satisfy NVS key length limits.
+    char keyBuf[16]; // Maximum NVS key length is 15 characters (+ NUL).
     anim.makeNvsKeyById(keyBuf, sizeof(keyBuf));
     if (!keyBuf[0]) return false;
-    // Сохраняем только конфигурацию анимации (AnimConfig реализует ISerializable).
+    // Save only the animation config (AnimConfig implements ISerializable).
     return saveSerializable("anim", keyBuf, anim.getConfig());
 }
 
 bool StorageManager::loadAnimation(AnimationBase& anim) {
-    // Используем ключ на основе ID, чтобы соблюдать ограничение длины ключа NVS.
-    char keyBuf[16]; // Максимальная длина ключа NVS — 15 символов (+ NUL).
+    // Use an ID-based key to satisfy NVS key length limits.
+    char keyBuf[16]; // Maximum NVS key length is 15 characters (+ NUL).
     anim.makeNvsKeyById(keyBuf, sizeof(keyBuf));
     if (!keyBuf[0]) return false;
-    // Загружаем данные в конфигурацию анимации.
+    // Load data into the animation configuration.
     return loadSerializable("anim", keyBuf, anim.getConfig());
 }

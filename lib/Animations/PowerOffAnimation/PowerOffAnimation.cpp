@@ -1,4 +1,4 @@
-#include "PowerOffAnimation.hpp"
+﻿#include "PowerOffAnimation.hpp"
 
 PowerOffAnimation::PowerOffAnimation(LedMatrix& m)
 	: matrix(&m),
@@ -50,4 +50,3 @@ void PowerOffAnimation::render() {
 	}
 
 }
-

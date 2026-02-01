@@ -1,4 +1,4 @@
-#include "SparkleWaveAnimation.hpp"
+﻿#include "SparkleWaveAnimation.hpp"
 #include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
@@ -36,7 +36,7 @@ void SparkleWaveAnimation::render(LedMatrix& m) {
 		}
 	}
 
-	
+
 }
 
 // Base class provides ISerializable

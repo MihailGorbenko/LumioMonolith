@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <cstddef>
 #include <Preferences.h>
 #include "Serializable.hpp"
@@ -6,7 +6,7 @@
 
 class StorageManager {
 public:
-    
+
     // App state (stored under namespace "app")
     bool saveApp(const ISerializable& obj);     // saves under key "cfg"
     bool loadApp(ISerializable& obj);           // loads from key "cfg"

@@ -1,4 +1,4 @@
-#include "AppCfg.hpp"
+﻿#include "AppCfg.hpp"
 #include <cstring>
 
 bool AppCfg::serialize(uint8_t* buf, size_t len) const {

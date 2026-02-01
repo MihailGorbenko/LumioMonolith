@@ -1,7 +1,8 @@
-#ifndef EQUALIZER_BARS_ANIMATION_HPP
+﻿#ifndef EQUALIZER_BARS_ANIMATION_HPP
 #define EQUALIZER_BARS_ANIMATION_HPP
 #include <Arduino.h>
 #include <vector>
+#include <array>
 #include "../../LedMatrix/LedMatrix.hpp"
 #include "../../Animation/Animation.hpp"
 #include "../../StorageManager/Serializable.hpp"
@@ -32,12 +33,14 @@ private:
     int numCols;
     int numRows;
     std::vector<uint8_t> heights;      // current height per column (0..H)
-    std::vector<int8_t> velocity;      // per-column velocity for continuous motion
-    uint8_t step;                        // base step size
+    std::vector<uint8_t> targets;      // target height per column (instant set by signal)
+    std::array<uint8_t,3> groupTargets; // low, mid, high bands
+    uint8_t step;                       // base step size
     uint32_t nextStepMs;
     uint16_t stepPeriodMs;
+    // no updatePhase for hard-digital behavior
 
-   
+
 };
 
 #endif // EQUALIZER_BARS_ANIMATION_HPP

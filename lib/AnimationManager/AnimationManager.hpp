@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <vector>
 #include "../LedMatrix/LedMatrix.hpp"
 #include "../Animation/Animation.hpp"

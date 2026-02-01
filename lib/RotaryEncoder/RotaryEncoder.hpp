@@ -1,4 +1,4 @@
-#ifndef ROTARY_ENCODER_HPP
+﻿#ifndef ROTARY_ENCODER_HPP
 #define ROTARY_ENCODER_HPP
 #include <Arduino.h>
 
@@ -45,8 +45,8 @@ public:
     };
 
     RotaryEncoder();
-    void init();           
-    void update();         
+    void init();
+    void update();
     void attachListener(IEncoderListener* l);
     void detachListener(IEncoderListener* l);
     void setValue(int v);
@@ -102,4 +102,3 @@ private:
 };
 
 #endif // ROTARY_ENCODER_HPP
-

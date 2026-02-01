@@ -1,11 +1,11 @@
-#ifndef ENERGYCIRCLES_ANIMATION_HPP
+﻿#ifndef ENERGYCIRCLES_ANIMATION_HPP
 #define ENERGYCIRCLES_ANIMATION_HPP
 
 #include "../../Animation/Animation.hpp"
 #include "../../StorageManager/Serializable.hpp"
 
 #ifndef ENERGY_DEFAULT_HUE
-#define ENERGY_DEFAULT_HUE 160 
+#define ENERGY_DEFAULT_HUE 160
 #endif
 
 #ifndef ENERGY_DEFAULT_SAT

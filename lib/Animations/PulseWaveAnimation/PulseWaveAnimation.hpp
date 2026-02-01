@@ -1,4 +1,4 @@
-#ifndef PULSE_WAVE_ANIMATION_HPP
+﻿#ifndef PULSE_WAVE_ANIMATION_HPP
 #define PULSE_WAVE_ANIMATION_HPP
 
 #include <Arduino.h>
@@ -29,6 +29,6 @@ public:
 private:
 	uint8_t pulseRadius;  // 0..255
 };
-	
+
 
 #endif // PULSE_WAVE_ANIMATION_HPP

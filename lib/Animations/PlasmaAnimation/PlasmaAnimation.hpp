@@ -1,4 +1,4 @@
-#ifndef PLASMA_ANIMATION_HPP
+﻿#ifndef PLASMA_ANIMATION_HPP
 #define PLASMA_ANIMATION_HPP
 
 #include <Arduino.h>

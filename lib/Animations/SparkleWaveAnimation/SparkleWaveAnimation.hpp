@@ -1,4 +1,4 @@
-#ifndef SPARKLE_WAVE_ANIMATION_HPP
+﻿#ifndef SPARKLE_WAVE_ANIMATION_HPP
 #define SPARKLE_WAVE_ANIMATION_HPP
 
 #include <Arduino.h>
@@ -25,10 +25,10 @@ public:
 	explicit SparkleWaveAnimation(uint16_t id);
 	void render(LedMatrix& m) override;
 	const char* getName() const override { return SPARKLEWAVE_ANIMATION_NAME; }
-	
+
 private:
 	uint8_t sparkleChance; // 0..255
-	
+
 };
 
 #endif // SPARKLE_WAVE_ANIMATION_HPP
