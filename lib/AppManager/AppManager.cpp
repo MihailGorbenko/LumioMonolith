@@ -640,6 +640,13 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
                 matrix->update();
                 AnimationBase* cur = animMgr->getCurrentAnimation();
                 if (cur) {
+                    // Load per-animation settings from storage when switching.
+                    if (storage) {
+                        bool ok = storage->loadAnimation(*cur);
+                        DBG_PRINTF("[NVS] load anim on switch: id=%u hue=%u ok=%d\n",
+                                   (unsigned)cur->getId(), (unsigned)cur->getConfig().hue, (int)ok);
+                        if (ok) cur->clearConfigDirty();
+                    }
                     appCfg.lastAnimId = cur->getId();
                     DBG_PRINTF("[Animation] switched to id=%u (%s)\n", (unsigned)cur->getId(), cur->getName());
                 }

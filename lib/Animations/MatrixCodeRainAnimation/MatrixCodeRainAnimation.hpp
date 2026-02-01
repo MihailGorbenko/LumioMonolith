@@ -27,10 +27,11 @@ public:
     void render(LedMatrix& m) override;
     const char* getName() const override { return MATRIXCODERAIN_ANIMATION_NAME; }
 private:
-    uint8_t tailLen;  // trail length in rows
+    std::vector<uint8_t> tailLens; // per-column trail length
     std::vector<int> heads; // per-column head position (y)
     std::vector<uint8_t> counter; // per-column counter for independent timing
     std::vector<uint8_t> speeds; // per-column step speed (ticks between moves)
+    std::vector<uint8_t> gaps; // per-column gap ticks before next head move
     int numCols; // number of columns (width)
     int numRows; // number of rows (height)
     uint32_t nextStepMs; // next step timestamp
