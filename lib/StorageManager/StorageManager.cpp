@@ -3,6 +3,9 @@
 #include <cstdio>
 #include <vector>
 #include "../../src/debug.hpp"
+
+// Include full Animation definition only in cpp to avoid header cyclic dependency
+#include "../Animation/Animation.hpp"
 // (No need to include AnimConfig; StorageManager operates on ISerializable)
 
 bool StorageManager::saveApp(const ISerializable& obj) {

@@ -2,7 +2,9 @@
 #include <cstddef>
 #include <Preferences.h>
 #include "Serializable.hpp"
-#include "../Animation/Animation.hpp"
+
+// Forward-declare to avoid cyclic include: full definition only needed in .cpp
+class AnimationBase;
 
 class StorageManager {
 public:
