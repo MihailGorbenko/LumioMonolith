@@ -82,6 +82,7 @@ void setup() {
 	animMgr.addAnimation(&codeRain);
 	animMgr.addAnimation(&equalizerBars);
 	animMgr.addAnimation(&plasma);
+	animMgr.addAnimation(&sparkleWave);
 	animMgr.addAnimation(&reactorTurbines);
 	animMgr.addAnimation(&chargingPulse);
 	animMgr.addAnimation(&rainbow);
