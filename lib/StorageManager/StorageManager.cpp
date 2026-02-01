@@ -46,9 +46,11 @@ bool StorageManager::loadSerializable(const char* ns, const char* key, ISerializ
     size_t storedLen = prefs.getBytesLength(key);
     if (storedLen == 0) { prefs.end(); return false; }
     if (storedLen != expected) {
-        LOGF("Storage", "size mismatch ns=%s key=%s expected=%u stored=%u\n", ns, key, (unsigned)expected, (unsigned)storedLen);
+        prefs.end();
+        LOGF("Storage", "size mismatch (abort) ns=%s key=%s expected=%u stored=%u\n", ns, key, (unsigned)expected, (unsigned)storedLen);
+        return false;
     }
-    size_t readLen = (storedLen < expected) ? storedLen : expected;
+    size_t readLen = expected;
     if (readLen > SCRATCH_MAX) {
         prefs.end();
         LOGF("Storage", "read length too large len=%u (scratch_max=%u) for ns=%s key=%s\n", (unsigned)readLen, (unsigned)SCRATCH_MAX, ns, key);
