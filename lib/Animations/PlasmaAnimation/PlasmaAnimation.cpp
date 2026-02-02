@@ -2,14 +2,16 @@
 #include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
-PlasmaAnimation::PlasmaAnimation(uint16_t id)
-	: AnimationBase(PLASMA_DEFAULT_HUE, id) {}
+PlasmaAnimation::PlasmaAnimation(uint16_t id, LedMatrix* m)
+	: AnimationBase(PLASMA_DEFAULT_HUE, id, m) {}
 
-void PlasmaAnimation::render(LedMatrix& m) {
-	m.clear();
+void PlasmaAnimation::render() {
+	LedMatrix* m = matrix;
+	if (!m) return;
+	m->clear();
 
-	int w = m.getWidth();
-	int hgt = m.getHeight();
+	int w = m->getWidth();
+	int hgt = m->getHeight();
 	if (w <= 0) w = 1;
 	if (hgt <= 0) hgt = 1;
 
@@ -27,7 +29,7 @@ void PlasmaAnimation::render(LedMatrix& m) {
 			uint8_t hOut = (uint8_t)(animCfg.hue + (t32 >> 3) + (p >> 2));
 			// allow full brightness at peaks; keep small floor of 16
 			uint8_t vOut = scale8(ANIMATION_DEFAULT_VAL, qadd8(16, p));
-			m.setPixelHSV(x, y, hOut, ANIMATION_DEFAULT_SAT, vOut);
+			m->setPixelHSV(x, y, hOut, ANIMATION_DEFAULT_SAT, vOut);
 		}
 	}
 

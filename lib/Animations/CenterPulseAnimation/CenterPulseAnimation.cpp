@@ -2,14 +2,16 @@
 #include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
-CenterPulseAnimation::CenterPulseAnimation(uint16_t id)
-    : AnimationBase(CENTERPULSE_DEFAULT_HUE, id),
+CenterPulseAnimation::CenterPulseAnimation(uint16_t id, LedMatrix* m)
+    : AnimationBase(CENTERPULSE_DEFAULT_HUE, id, m),
             speedDiv(6) {}
 
 
-void CenterPulseAnimation::render(LedMatrix& m) {
-    int w = m.getWidth();
-    int h = m.getHeight();
+void CenterPulseAnimation::render() {
+    LedMatrix* m = matrix;
+    if (!m) return;
+    int w = m->getWidth();
+    int h = m->getHeight();
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
 
@@ -26,7 +28,7 @@ void CenterPulseAnimation::render(LedMatrix& m) {
     int radius = (int)(sr / 255);
     uint8_t frac = (uint8_t)(sr % 255); // fractional part for edge blend
 
-    m.clear();
+    m->clear();
     for (int y = 0; y < h; ++y) {
         int d = abs(y - center);
         uint8_t vRow = 0;
@@ -39,7 +41,7 @@ void CenterPulseAnimation::render(LedMatrix& m) {
             continue;
         }
         for (int x = 0; x < w; ++x) {
-            m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vRow);
+            m->setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vRow);
         }
     }
 

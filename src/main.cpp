@@ -1,5 +1,6 @@
 ﻿#include <Arduino.h>
 #include "debug.hpp"
+#include <Preferences.h>
 #include "../lib/LedMatrix/LedMatrix.hpp"
 #include "../lib/RotaryEncoder/RotaryEncoder.hpp"
 #include "../lib/Animations/StarsAnimation/StarsAnimation.hpp"
@@ -23,7 +24,7 @@
 LedMatrix matrix;
 RotaryEncoder rotary;
 StorageManager storage;
-AnimationManager animMgr(matrix);
+AnimationManager animMgr;
 
 // Fixed animation IDs (replaces nextAnimId)
 #define ANIM_ID_STARS 1
@@ -42,18 +43,18 @@ AnimationManager animMgr(matrix);
 // Auto-generate stable unique IDs in declaration order
 // static uint16_t nextAnimId() { static uint16_t id = 1; return id++; }
 
-StarsAnimation stars(ANIM_ID_STARS);
-RainbowChaseAnimation rainbow(ANIM_ID_RAINBOW);
-PlasmaAnimation plasma(ANIM_ID_PLASMA);
-SparkleWaveAnimation sparkleWave(ANIM_ID_SPARKLE_WAVE);
-PulseWaveAnimation pulseWave(ANIM_ID_PULSE_WAVE);
-SegmentRunnerAnimation segmentRunner(ANIM_ID_SEGMENT_RUNNER);
-CenterPulseAnimation centerPulse(ANIM_ID_CENTER_PULSE);
-MatrixCodeRainAnimation codeRain(ANIM_ID_CODE_RAIN);
-EqualizerBarsAnimation equalizerBars(ANIM_ID_EQUALIZER_BARS);
-EnergyCirclesAnimation energyCircles(ANIM_ID_ENERGY_CIRCLES);
-ReactorTurbinesAnimation reactorTurbines(ANIM_ID_REACTOR_TURBINES);
-ChargingPulseAnimation chargingPulse(ANIM_ID_CHARGING_PULSE);
+StarsAnimation stars(ANIM_ID_STARS, &matrix);
+RainbowChaseAnimation rainbow(ANIM_ID_RAINBOW, &matrix);
+PlasmaAnimation plasma(ANIM_ID_PLASMA, &matrix);
+SparkleWaveAnimation sparkleWave(ANIM_ID_SPARKLE_WAVE, &matrix);
+PulseWaveAnimation pulseWave(ANIM_ID_PULSE_WAVE, &matrix);
+SegmentRunnerAnimation segmentRunner(ANIM_ID_SEGMENT_RUNNER, &matrix);
+CenterPulseAnimation centerPulse(ANIM_ID_CENTER_PULSE, &matrix);
+MatrixCodeRainAnimation codeRain(ANIM_ID_CODE_RAIN, &matrix);
+EqualizerBarsAnimation equalizerBars(ANIM_ID_EQUALIZER_BARS, &matrix);
+EnergyCirclesAnimation energyCircles(ANIM_ID_ENERGY_CIRCLES, &matrix);
+ReactorTurbinesAnimation reactorTurbines(ANIM_ID_REACTOR_TURBINES, &matrix);
+ChargingPulseAnimation chargingPulse(ANIM_ID_CHARGING_PULSE, &matrix);
 AppManager app(animMgr, rotary, matrix, storage);
 
 void setup() {
@@ -72,8 +73,9 @@ void setup() {
 	matrix.init();
 	rotary.init();
 	rotary.attachListener(&app);
-
-	// register animations directly via AnimationManager
+	animMgr.init(storage);
+	
+	// Register animations with the manager
 	animMgr.addAnimation(&centerPulse);
 	animMgr.addAnimation(&pulseWave);
 	animMgr.addAnimation(&segmentRunner);
@@ -87,6 +89,18 @@ void setup() {
 	animMgr.addAnimation(&chargingPulse);
 	animMgr.addAnimation(&rainbow);
 
+	// NVS wipe block - ENABLE ONLY WHEN YOU INTEND TO CLEAR STORED CONFIGS
+	// To use: change `#if 0` to `#if 1` or uncomment the block. After successful
+	// wipe, revert the change to avoid accidental data loss.
+#if 0
+	{
+		Preferences p;
+		// clear application config
+		if (p.begin("app", false)) { p.clear(); p.end(); }
+		// clear animation configs
+		if (p.begin("anim", false)) { p.clear(); p.end(); }
+	}
+#endif
 	app.begin();
 
 	#if LOG_ENABLED

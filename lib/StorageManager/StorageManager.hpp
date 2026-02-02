@@ -21,6 +21,10 @@ public:
     bool saveSerializable(const char* ns, const char* key, const ISerializable& obj);
     bool loadSerializable(const char* ns, const char* key, ISerializable& obj);
 
+    // Animation manager config (stored under namespace "anim_mngr")
+    bool saveAnimMngrCfg(const ISerializable& obj); // saves under key "cfg"
+    bool loadAnimMngrCfg(ISerializable& obj);       // loads from key "cfg"
+
 private:
     Preferences prefs;
     static constexpr size_t SCRATCH_MAX = 64;

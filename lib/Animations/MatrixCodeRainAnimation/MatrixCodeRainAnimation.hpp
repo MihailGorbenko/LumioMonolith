@@ -23,8 +23,8 @@
 
 class MatrixCodeRainAnimation : public AnimationBase {
 public:
-    explicit MatrixCodeRainAnimation(uint16_t id);
-    void render(LedMatrix& m) override;
+    explicit MatrixCodeRainAnimation(uint16_t id, LedMatrix* m);
+    void render() override;
     const char* getName() const override { return MATRIXCODERAIN_ANIMATION_NAME; }
 private:
     std::vector<uint8_t> tailLens; // per-column trail length

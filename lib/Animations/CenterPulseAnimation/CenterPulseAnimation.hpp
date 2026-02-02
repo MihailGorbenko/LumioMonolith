@@ -22,9 +22,9 @@
 
 class CenterPulseAnimation : public AnimationBase {
 public:
-    explicit CenterPulseAnimation(uint16_t id);
+    explicit CenterPulseAnimation(uint16_t id, LedMatrix* m);
 
-    void render(LedMatrix& m) override;
+    void render() override;
 
 private:
     uint8_t speedDiv; // time divider for sin phase

@@ -1,14 +1,16 @@
 ﻿#include "SegmentRunnerAnimation.hpp"
 #include "../../LedMatrix/LedMatrix.hpp"
 
-SegmentRunnerAnimation::SegmentRunnerAnimation(uint16_t id)
-    : AnimationBase(SEGMENTRUNNER_DEFAULT_HUE, id),
+SegmentRunnerAnimation::SegmentRunnerAnimation(uint16_t id, LedMatrix* m)
+    : AnimationBase(SEGMENTRUNNER_DEFAULT_HUE, id, m),
             stepPeriodMs(130) {}
 
 
-void SegmentRunnerAnimation::render(LedMatrix& m) {
-    int w = m.getWidth();
-    int h = m.getHeight();
+void SegmentRunnerAnimation::render() {
+    LedMatrix* m = matrix;
+    if (!m) return;
+    int w = m->getWidth();
+    int h = m->getHeight();
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
 

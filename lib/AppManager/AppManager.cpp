@@ -75,24 +75,15 @@ void AppManager::begin() {
 
     DBG_PRINTLN("[AppManager] Calling loadState (loadApp)...");
     bool okLoad = loadState();
-    DBG_PRINTF("[NVS] load app: animId=%u brightness=%u powerOn=%u ok=%d\n",
-               (unsigned)appCfg.lastAnimId, (unsigned)brightness, (unsigned)appCfg.powerOn, (int)okLoad);
+    DBG_PRINTF("[NVS] load app: brightness=%u powerOn=%u ok=%d\n",
+               (unsigned)brightness, (unsigned)appCfg.powerOn, (int)okLoad);
     applyBrightness();
 
     // Зафиксировать начальный снимок сохранённой конфигурации.
     savedAppCfg = appCfg;
     savedAppCfgInit = true;
 
-    // Загрузка конфигурации текущей анимации (если есть) и отметка как чистой.
-    if (animMgr) {
-        AnimationBase* cur = animMgr->getCurrentAnimation();
-        if (cur && storage) {
-            bool okAnim = storage->loadAnimation(*cur);
-            DBG_PRINTF("[NVS] load anim: id=%u hue=%u ok=%d\n",
-                       (unsigned)cur->getId(), (unsigned)cur->getConfig().hue, (int)okAnim);
-            cur->clearConfigDirty();
-        }
-    }
+    // AnimationManager now loads/activates current animation in its init().
 
     // Инициализация «тиков» из загруженной яркости.
     {
@@ -133,6 +124,9 @@ void AppManager::update() {
 
     // Обработка перехода при простое.
     handleIdle(now);
+
+    // Run animation manager periodic tasks independent of render FPS
+    if (animMgr) animMgr->update();
 
     // Управление частотой рендеринга.
     unsigned long elapsed = now - lastFrameMs;
@@ -254,8 +248,8 @@ void AppManager::onEnter(State s) {
             lastOverlayOnMs = startupBeginMs;
             startupLoadedMs = 0;
             DBG_PRINTLN("[FSM] Enter STARTUP");
-            DBG_PRINTF("[Startup] appCfg: animId=%u brightness=%u powerOn=%u\n",
-                       (unsigned)appCfg.lastAnimId, (unsigned)brightness, (unsigned)appCfg.powerOn);
+            DBG_PRINTF("[Startup] appCfg: brightness=%u powerOn=%u\n",
+                       (unsigned)brightness, (unsigned)appCfg.powerOn);
             break;
 
         case State::Brightness:
@@ -287,11 +281,19 @@ void AppManager::onEnter(State s) {
             if (animMgr) animMgr->unsetOverlay();
             // Настройка энкодера для «тиков» оттенка (0..APP_COLOR_TICKS, без кольца) с ускорением.
             if (encoder) {
-                // derive ticks from current animation hue
+                // derive ticks from current animation hue by reading stored anim config
                 int curTicks = 0;
-                if (animMgr) {
-                    AnimationBase* cur = animMgr->getCurrentAnimation();
-                    if (cur) curTicks = hueToTicks(cur->getConfig().hue);
+                if (animMgr && storage) {
+                    uint16_t aid = animMgr->getCurrentId();
+                    if (aid != 0) {
+                        char keyBuf[16];
+                        snprintf(keyBuf, sizeof(keyBuf), "a%u", (unsigned)aid);
+                        // read anim config into temp
+                        AnimConfig temp;
+                        if (storage->loadSerializable("anim", keyBuf, temp)) {
+                            curTicks = hueToTicks(temp.hue);
+                        }
+                    }
                 }
                 colorTicks = curTicks;
                 encoder->setBoundaries(0, APP_COLOR_TICKS, false);
@@ -339,12 +341,7 @@ void AppManager::onExit(State s) {
         case State::Color: {
             // Сохранить конфигурацию текущей анимации при выходе, только если она изменена.
             if (animMgr) {
-                AnimationBase* cur = animMgr->getCurrentAnimation();
-                if (cur && storage && cur->isConfigDirty()) {
-                    if (storage->saveAnimation(*cur)) {
-                        cur->clearConfigDirty();
-                    }
-                }
+                animMgr->saveCurrentAnimationIfDirty();
             }
             // Восстановить границы энкодера на значения по умолчанию с кольцом.
             if (encoder) {
@@ -376,13 +373,9 @@ void AppManager::handleIdle(unsigned long now) {
                 saveState();
             } else if (state == State::Color) {
                 if (animMgr) {
-                    AnimationBase* cur = animMgr->getCurrentAnimation();
-                    if (cur && storage && cur->isConfigDirty()) {
-                        if (storage->saveAnimation(*cur)) {
-                            cur->clearConfigDirty();
-                        }
-                    }
+                    animMgr->saveCurrentAnimationIfDirty();
                 }
+            }
             }
                 // If there is a pending user-driven transition, don't let Idle preempt it.
                 if (pendingState != State::None && pendingStateSource == StateReqSource::User) {
@@ -427,13 +420,12 @@ void AppManager::updateOverlays(unsigned long now) {
         overlayOnActive = true;
 
         // Когда достигли полного прогресса, держим оверлей и выполняем пост-задержку.
-        if (overlayOnProg >= 255U) {
-            if (!startupLoadedAnim) {
-                // Загрузить последнюю анимацию по ID (рендер не начнётся, пока активен оверлей).
-                if (animMgr && appCfg.lastAnimId != 0) animMgr->setAnimation(appCfg.lastAnimId);
-                startupLoadedAnim = true;
-                startupLoadedMs = now;
-            }
+            if (overlayOnProg >= 255U) {
+                if (!startupLoadedAnim) {
+                    // Let AnimationManager handle its own last-animation restore
+                    startupLoadedAnim = true;
+                    startupLoadedMs = now;
+                }
             // По истечении задержки — снять оверлей и перейти в Brightness.
             if (startupLoadedAnim && (now - startupLoadedMs) >= APP_STARTUP_RENDER_DELAY_MS) {
                 overlayOnActive = false;
@@ -638,18 +630,10 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
                 }
                 matrix->clear();
                 matrix->update();
-                AnimationBase* cur = animMgr->getCurrentAnimation();
-                if (cur) {
-                    // Load per-animation settings from storage when switching.
-                    if (storage) {
-                        bool ok = storage->loadAnimation(*cur);
-                        DBG_PRINTF("[NVS] load anim on switch: id=%u hue=%u ok=%d\n",
-                                   (unsigned)cur->getId(), (unsigned)cur->getConfig().hue, (int)ok);
-                        if (ok) cur->clearConfigDirty();
-                    }
-                    appCfg.lastAnimId = cur->getId();
-                    DBG_PRINTF("[Animation] switched to id=%u (%s)\n", (unsigned)cur->getId(), cur->getName());
-                }
+                // AnimationManager handles loading/activation of target animations.
+                uint16_t id = animMgr ? animMgr->getCurrentId() : 0;
+                const char* name = animMgr ? animMgr->getCurrentName() : "";
+                DBG_PRINTF("[Animation] switched to id=%u (%s)\n", (unsigned)id, name ? name : "");
                 break;
             }
             case State::Color: {
@@ -659,8 +643,7 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
                 if (newTicks > APP_COLOR_TICKS) newTicks = APP_COLOR_TICKS;
                 colorTicks = newTicks;
                 uint8_t newHue = hueFromTicks(colorTicks);
-                AnimationBase* cur = animMgr->getCurrentAnimation();
-                if (cur) cur->setHue(newHue);
+                if (animMgr) animMgr->setCurrentHue(newHue);
                 DBG_PRINTF("[Color] ticks=%d hue=%u\n", colorTicks, (unsigned)newHue);
                 break;
             }
@@ -673,31 +656,23 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
 }
 
 bool AppManager::saveState() {
-    // Собрать снимок актуальных значений.
+    // Assemble snapshot of current values.
     AppCfg snap;
     snap.masterBrightness = (uint16_t)brightness;
-    if (animMgr) {
-        AnimationBase* cur = animMgr->getCurrentAnimation();
-        snap.lastAnimId = cur ? cur->getId() : 0;
-    } else {
-        snap.lastAnimId = 0;
-    }
-    // Текущее состояние питания (не Off/Shutdown => on).
+    // Current power state (not Off/Shutdown => on).
     snap.powerOn = (state != State::Off && state != State::Shutdown) ? 1 : 0;
 
-    // Сохранение только при изменении.
+    // Save only if changed.
     if (savedAppCfgInit &&
         snap.masterBrightness == savedAppCfg.masterBrightness &&
-        snap.lastAnimId == savedAppCfg.lastAnimId &&
         snap.powerOn == savedAppCfg.powerOn) {
-        // skip verbose NVS log
         appCfg = snap;
         return true;
     }
 
     bool ok = storage ? storage->saveApp(snap) : false;
-    DBG_PRINTF("[NVS] save app: animId=%u brightness=%u powerOn=%u ok=%d\n",
-               (unsigned)snap.lastAnimId, (unsigned)snap.masterBrightness, (unsigned)snap.powerOn, (int)ok);
+    DBG_PRINTF("[NVS] save app: brightness=%u powerOn=%u ok=%d\n",
+               (unsigned)snap.masterBrightness, (unsigned)snap.powerOn, (int)ok);
     if (ok) {
         savedAppCfg = snap;
         savedAppCfgInit = true;
@@ -711,7 +686,6 @@ bool AppManager::loadState() {
     if (!ok) {
         // Default behavior for first boot with empty storage: power on.
         appCfg.powerOn = 1;
-        appCfg.lastAnimId = 0;
     }
     // Клампинг яркости.
     uint16_t b = appCfg.masterBrightness;
@@ -727,8 +701,7 @@ bool AppManager::loadState() {
         if (brightTicks < 0) brightTicks = 0;
         if (brightTicks > APP_BRIGHTNESS_TICKS) brightTicks = APP_BRIGHTNESS_TICKS;
     }
-    // Установить анимацию по ID, если доступно.
-    if (animMgr && appCfg.lastAnimId != 0) animMgr->setAnimation(appCfg.lastAnimId);
-    DBG_PRINTF("[NVS] load app: animId=%u brightness=%u powerOn=%u ok=%d\n", (unsigned)appCfg.lastAnimId, (unsigned)brightness, (unsigned)appCfg.powerOn, (int)ok);
+    // Let AnimationManager handle any last-animation restore
+    DBG_PRINTF("[NVS] load app: brightness=%u powerOn=%u ok=%d\n", (unsigned)brightness, (unsigned)appCfg.powerOn, (int)ok);
     return ok;
 }

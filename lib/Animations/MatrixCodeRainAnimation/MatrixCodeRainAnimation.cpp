@@ -2,15 +2,17 @@
 #include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
-MatrixCodeRainAnimation::MatrixCodeRainAnimation(uint16_t id)
-        : AnimationBase(MATRIX_RAIN_DEFAULT_HUE, id),
-                    numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(40) {
+MatrixCodeRainAnimation::MatrixCodeRainAnimation(uint16_t id, LedMatrix* m)
+    : AnimationBase(MATRIX_RAIN_DEFAULT_HUE, id, m),
+            numCols(0), numRows(0), nextStepMs(0), stepPeriodMs(40) {
     // Defer initialization until render when matrix size is known.
 }
 
-void MatrixCodeRainAnimation::render(LedMatrix& m) {
-    int w = m.getWidth();
-    int h = m.getHeight();
+void MatrixCodeRainAnimation::render() {
+    LedMatrix* m = matrix;
+    if (!m) return;
+    int w = m->getWidth();
+    int h = m->getHeight();
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
 
@@ -64,7 +66,7 @@ void MatrixCodeRainAnimation::render(LedMatrix& m) {
         }
     }
 
-    m.clear();
+    m->clear();
     // vertical rain top->down: drops per column (single hue)
     for (int x = 0; x < numCols; ++x) {
         // render only every second column visually to keep the original sparse look
@@ -95,7 +97,7 @@ void MatrixCodeRainAnimation::render(LedMatrix& m) {
                 if (scale < minScale) scale = minScale;
                 vpix = scale8(ANIMATION_DEFAULT_VAL, scale);
             }
-            m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vpix);
+            m->setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vpix);
         }
     }
 

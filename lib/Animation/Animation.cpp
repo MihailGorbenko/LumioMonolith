@@ -2,8 +2,8 @@
 #include <cstring>
 #include <cstdio>
 
-AnimationBase::AnimationBase(uint8_t defH, uint16_t id)
-    : animCfg(defH), animId(id), configDirty(false) {}
+AnimationBase::AnimationBase(uint8_t defH, uint16_t id, LedMatrix* m)
+    : animCfg(defH), animId(id), configDirty(false), initialized(false), matrix(m) {}
 
 
 void AnimationBase::makeNvsKeyById(char* out, size_t outSize) const {

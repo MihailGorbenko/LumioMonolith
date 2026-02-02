@@ -33,8 +33,8 @@
 
 class EnergyCirclesAnimation : public AnimationBase {
 public:
-    explicit EnergyCirclesAnimation(uint16_t id);
-    void render(LedMatrix& m) override;
+    explicit EnergyCirclesAnimation(uint16_t id, LedMatrix* m);
+    void render() override;
 
     const char* getName() const override { return ENERGYCIRCLES_ANIMATION_NAME; }
 };

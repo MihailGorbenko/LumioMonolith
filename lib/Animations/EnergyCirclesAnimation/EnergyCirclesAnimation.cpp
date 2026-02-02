@@ -2,16 +2,18 @@
 #include <math.h>
 #include "../../LedMatrix/LedMatrix.hpp"
 
-EnergyCirclesAnimation::EnergyCirclesAnimation(uint16_t id)
-    : AnimationBase(ENERGY_DEFAULT_HUE, id) {}
+EnergyCirclesAnimation::EnergyCirclesAnimation(uint16_t id, LedMatrix* m)
+    : AnimationBase(ENERGY_DEFAULT_HUE, id, m) {}
 
-void EnergyCirclesAnimation::render(LedMatrix& m) {
+void EnergyCirclesAnimation::render() {
+    LedMatrix* m = matrix;
+    if (!m) return;
 
-    const int w = m.getWidth();
-    const int h = m.getHeight();
+    const int w = m->getWidth();
+    const int h = m->getHeight();
     if (w <= 0 || h <= 0) return;
 
-    m.clear();
+    m->clear();
 
     // Compute time in "step units" as float for per-row speed
     const uint32_t now = millis();
@@ -43,7 +45,7 @@ void EnergyCirclesAnimation::render(LedMatrix& m) {
             startX = pos;
             for (int i = 0; i < segLen; ++i) {
                 int x = (startX + i) % w;
-                m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, ANIMATION_DEFAULT_VAL);
+                m->setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, ANIMATION_DEFAULT_VAL);
             }
         } else {
             startX = w - 1 - pos;

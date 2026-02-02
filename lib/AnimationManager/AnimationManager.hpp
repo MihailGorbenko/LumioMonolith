@@ -1,12 +1,13 @@
 ﻿#pragma once
 #include <vector>
-#include "../LedMatrix/LedMatrix.hpp"
 #include "../Animation/Animation.hpp"
 #include "../Animation/OverlayAnimation.hpp"
+#include "AnimMngrCfg.hpp"
+#include "../StorageManager/StorageManager.hpp"
 
 class AnimationManager {
 public:
-    explicit AnimationManager(LedMatrix& m) : matrix(&m) {}
+    explicit AnimationManager(StorageManager* s = nullptr) : storage(s) {}
 
     // Add animation to the manager (does not take ownership)
     void addAnimation(AnimationBase* a);
@@ -20,8 +21,8 @@ public:
     // Select animation by its stable ID; keeps index consistent with switchToNext
     bool setAnimation(uint16_t id);
 
-    // Get pointer to currently selected animation (nullptr if none)
-    AnimationBase* getCurrentAnimation() const;
+    // Initialize manager with storage
+    void init(StorageManager& s);
 
     // Overlay control: set/unset system overlay animation
     void setOverlay(OverlayAnimation* ov);
@@ -30,9 +31,38 @@ public:
     // Render current frame: overlay if set, otherwise base animation
     void render();
 
+    // Periodic update: perform autosave and persistence tasks
+    void update();
+
+    // Force persist manager config and dirty animations
+    bool forceSave();
+    // Set hue for the currently active animation (0..255)
+    bool setCurrentHue(uint8_t hue);
+
+    // Get current animation id (0 if none)
+    uint16_t getCurrentId() const;
+
+    // Get current animation name (returns nullptr if none)
+    const char* getCurrentName() const;
+
 private:
-    LedMatrix* matrix;
+    StorageManager* storage{nullptr};
+    bool configDirty{false};
+    // persisted manager config
+    AnimMngrCfg animCfg;
     std::vector<AnimationBase*> animations;
     int currentIndex{0};
     OverlayAnimation* overlay{nullptr};
+    // Timing for autosave logic
+    unsigned long lastSwitchMs{0};
+    unsigned long lastHueChangeMs{0};
+
+    // Helpers for tracking manager config dirty state
+    bool isConfigDirty() const;
+    void setConfigDirty();
+    void clearConfigDirty();
+    // Save current animation config if dirty
+    bool saveCurrentAnimationIfDirty();
+    // Load configs for current animation and neighbors
+    void loadNeithboors();
 };

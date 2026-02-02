@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "../StorageManager/Serializable.hpp"
 
-// Конфигурация анимации: только оттенок (hue)
+// Animation config: hue only
 class AnimConfig : public ISerializable {
 public:
     uint8_t hue;

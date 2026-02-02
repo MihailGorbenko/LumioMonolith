@@ -70,6 +70,14 @@ bool StorageManager::loadSerializable(const char* ns, const char* key, ISerializ
     return ok;
 }
 
+bool StorageManager::saveAnimMngrCfg(const ISerializable& obj) {
+    return saveSerializable("anim_mngr", "cfg", obj);
+}
+
+bool StorageManager::loadAnimMngrCfg(ISerializable& obj) {
+    return loadSerializable("anim_mngr", "cfg", obj);
+}
+
 bool StorageManager::saveAnimation(AnimationBase& anim) {
     // Use an ID-based key to satisfy NVS key length limits.
     char keyBuf[16]; // Maximum NVS key length is 15 characters (+ NUL).

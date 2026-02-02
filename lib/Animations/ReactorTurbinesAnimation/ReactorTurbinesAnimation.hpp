@@ -36,8 +36,8 @@
 
 class ReactorTurbinesAnimation : public AnimationBase {
 public:
-    explicit ReactorTurbinesAnimation(uint16_t id);
-    void render(LedMatrix& m) override;
+    explicit ReactorTurbinesAnimation(uint16_t id, LedMatrix* m);
+    void render() override;
 
     const char* getName() const override { return REACTORTURBINES_ANIMATION_NAME; }
 };

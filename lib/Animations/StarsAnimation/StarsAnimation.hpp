@@ -28,11 +28,11 @@
 
 class StarsAnimation : public AnimationBase {
 public:
-	// default hue comes from defines; id is provided by main
-	explicit StarsAnimation(uint16_t id);
+	// default hue comes from defines; id and matrix are provided by main
+	explicit StarsAnimation(uint16_t id, LedMatrix* m);
 
-	// render one frame; controller passes matrix
-	void render(LedMatrix& m) override;
+	// render one frame
+	void render() override;
 
 	const char* getName() const override { return STARS_ANIMATION_NAME; }
 

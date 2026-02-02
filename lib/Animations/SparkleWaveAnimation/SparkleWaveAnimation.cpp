@@ -2,15 +2,17 @@
 #include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
-SparkleWaveAnimation::SparkleWaveAnimation(uint16_t id)
-		: AnimationBase(SPARKLEWAVE_DEFAULT_HUE, id),
+SparkleWaveAnimation::SparkleWaveAnimation(uint16_t id, LedMatrix* m)
+		: AnimationBase(SPARKLEWAVE_DEFAULT_HUE, id, m),
 			sparkleChance(0) {}
 
-void SparkleWaveAnimation::render(LedMatrix& m) {
-	m.clear();
+void SparkleWaveAnimation::render() {
+	LedMatrix* m = matrix;
+	if (!m) return;
+	m->clear();
 
-	int w = m.getWidth();
-	int hgt = m.getHeight();
+	int w = m->getWidth();
+	int hgt = m->getHeight();
 	if (w <= 0) w = 1;
 	if (hgt <= 0) hgt = 1;
 
@@ -29,7 +31,7 @@ void SparkleWaveAnimation::render(LedMatrix& m) {
 			// Add slight vertical variation
 			uint8_t vOut = (hgt >= 2) ? ((y == 0) ? vWave : scale8(vWave, 200)) : vWave;
 			// No sparkle boost — flashes removed
-			m.setPixelHSV(x, y, hOut, ANIMATION_DEFAULT_SAT, vOut);
+			m->setPixelHSV(x, y, hOut, ANIMATION_DEFAULT_SAT, vOut);
 		}
 	}
 
