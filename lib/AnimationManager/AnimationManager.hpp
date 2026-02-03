@@ -22,7 +22,7 @@ public:
     bool setAnimation(uint16_t id);
 
     // Initialize manager with storage
-    void init(StorageManager& s);
+    void init();
 
     // Overlay control: set/unset system overlay animation
     void setOverlay(OverlayAnimation* ov);

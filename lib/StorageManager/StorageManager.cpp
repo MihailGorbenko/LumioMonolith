@@ -1,7 +1,5 @@
 ﻿#include "StorageManager.hpp"
 #include <Arduino.h>
-#include <cstdio>
-#include <vector>
 #include "../../src/debug.hpp"
 
 // Include full Animation definition only in cpp to avoid header cyclic dependency
@@ -9,11 +7,11 @@
 // (No need to include AnimConfig; StorageManager operates on ISerializable)
 
 bool StorageManager::saveApp(const ISerializable& obj) {
-    return saveSerializable("app", "cfg", obj);
+    return saveSerializable("appV1", "cfg", obj);
 }
 
 bool StorageManager::loadApp(ISerializable& obj) {
-    return loadSerializable("app", "cfg", obj);
+    return loadSerializable("appV1", "cfg", obj);
 }
 
 
@@ -21,8 +19,8 @@ bool StorageManager::saveSerializable(const char* ns, const char* key, const ISe
     if (!ns || !key) return false;
     size_t payloadLen = obj.serializedSize();
     if (payloadLen == 0) return false;
-    if (payloadLen > SCRATCH_MAX) {
-        LOGF("Storage", "payload too large len=%u (scratch_max=%u) for ns=%s key=%s\n", (unsigned)payloadLen, (unsigned)SCRATCH_MAX, ns, key);
+    if (payloadLen > StorageManager::SCRATCH_MAX) {
+        LOGF("Storage", "payload too large len=%u (scratch_max=%u) for ns=%s key=%s\n", (unsigned)payloadLen, (unsigned)StorageManager::SCRATCH_MAX, ns, key);
         return false;
     }
     uint8_t* bufPtr = scratch;
@@ -54,9 +52,9 @@ bool StorageManager::loadSerializable(const char* ns, const char* key, ISerializ
         return false;
     }
     size_t readLen = expected;
-    if (readLen > SCRATCH_MAX) {
+    if (readLen > StorageManager::SCRATCH_MAX) {
         prefs.end();
-        LOGF("Storage", "read length too large len=%u (scratch_max=%u) for ns=%s key=%s\n", (unsigned)readLen, (unsigned)SCRATCH_MAX, ns, key);
+        LOGF("Storage", "read length too large len=%u (scratch_max=%u) for ns=%s key=%s\n", (unsigned)readLen, (unsigned)StorageManager::SCRATCH_MAX, ns, key);
         return false;
     }
     uint8_t* bufPtr = scratch;

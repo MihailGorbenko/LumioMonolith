@@ -70,12 +70,7 @@ void setup() {
 	LOG_PRINTLN("Starting LumioMonolith...");
 	#endif
 
-	matrix.init();
-	rotary.init();
-	rotary.attachListener(&app);
-	animMgr.init(storage);
-	
-	// Register animations with the manager
+		// Register animations with the manager
 	animMgr.addAnimation(&centerPulse);
 	animMgr.addAnimation(&pulseWave);
 	animMgr.addAnimation(&segmentRunner);
@@ -89,18 +84,12 @@ void setup() {
 	animMgr.addAnimation(&chargingPulse);
 	animMgr.addAnimation(&rainbow);
 
-	// NVS wipe block - ENABLE ONLY WHEN YOU INTEND TO CLEAR STORED CONFIGS
-	// To use: change `#if 0` to `#if 1` or uncomment the block. After successful
-	// wipe, revert the change to avoid accidental data loss.
-#if 0
-	{
-		Preferences p;
-		// clear application config
-		if (p.begin("app", false)) { p.clear(); p.end(); }
-		// clear animation configs
-		if (p.begin("anim", false)) { p.clear(); p.end(); }
-	}
-#endif
+
+	matrix.init();
+	rotary.init();
+	animMgr.init();
+	rotary.attachListener(&app);
+	
 	app.begin();
 
 	#if LOG_ENABLED

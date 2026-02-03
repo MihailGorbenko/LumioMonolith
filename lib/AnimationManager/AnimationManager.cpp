@@ -8,8 +8,7 @@ void AnimationManager::addAnimation(AnimationBase* a) {
     if (animations.size() == 1) currentIndex = 0;
 }
 
-void AnimationManager::init(StorageManager& s) {
-    storage = &s;
+void AnimationManager::init() {
     // attempt to load persisted manager config
     if (storage) {
         // try to load stored manager config
