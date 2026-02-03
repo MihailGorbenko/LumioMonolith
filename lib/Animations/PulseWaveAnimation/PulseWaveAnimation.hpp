@@ -22,7 +22,7 @@
 
 class PulseWaveAnimation : public AnimationBase {
 public:
-	explicit PulseWaveAnimation(uint16_t id, LedMatrix* m);
+	explicit PulseWaveAnimation(uint16_t id, LedMatrix& m);
 	void render() override;
 	const char* getName() const override { return PULSEWAVE_ANIMATION_NAME; }
 

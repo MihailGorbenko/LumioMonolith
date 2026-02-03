@@ -12,14 +12,14 @@
 #define LED_PIN 6
 #endif
 
-// Класс управления светодиодной матрицей.
+// LED matrix control class.
 class LedMatrix {
 private:
     CRGB leds[NUM_LEDS];
-    CRGB baseLeds[NUM_LEDS]; // Буфер исходных (незашкаленных) цветов.
+    CRGB baseLeds[NUM_LEDS]; // Buffer of base (unscaled) colors.
     int m_width = MATRIX_WIDTH;
     int m_height = MATRIX_HEIGHT;
-    uint8_t masterBrightness = DEF_BRIGHTNESS; // Мастер-яркость (глобальная).
+    uint8_t masterBrightness = DEF_BRIGHTNESS; // Master/global brightness.
     int XY(int x, int y);
 public:
 
@@ -28,9 +28,9 @@ public:
     void clear();
     void update();
     void powerOff();
-    int getWidth() const{ return m_width; };
-    int getHeight() const{ return m_height; };
-    int getNumLeds() const{ return NUM_LEDS; };
+    int getWidth() const { return m_width; }
+    int getHeight() const { return m_height; }
+    int getNumLeds() const { return NUM_LEDS; }
     void setMasterBrightness(uint8_t b);
     void setPixelHSV(int x, int y, uint8_t h, uint8_t s, uint8_t v);
 

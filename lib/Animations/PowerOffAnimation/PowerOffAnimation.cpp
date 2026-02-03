@@ -1,11 +1,7 @@
 ﻿#include "PowerOffAnimation.hpp"
 
 PowerOffAnimation::PowerOffAnimation(LedMatrix& m)
-	: matrix(&m),
-			hue(POWEROFF_DEFAULT_HUE),
-			sat(POWEROFF_DEFAULT_SAT),
-			val(POWEROFF_DEFAULT_VAL),
-	  progress(0) {
+	: OverlayAnimation(m, POWEROFF_DEFAULT_HUE, POWEROFF_DEFAULT_SAT, POWEROFF_DEFAULT_VAL) {
 	// пусто
 }
 
@@ -16,11 +12,10 @@ void PowerOffAnimation::setProgress(uint8_t p) {
 
 
 void PowerOffAnimation::render() {
-	if (!matrix) return;
-	matrix->clear();
+	matrix.clear();
 
-	int w = matrix->getWidth();
-	int h = matrix->getHeight();
+	int w = matrix.getWidth();
+	int h = matrix.getHeight();
 	if (w <= 0) w = 1;
 	if (h <= 0) h = 1;
 
@@ -45,7 +40,7 @@ void PowerOffAnimation::render() {
 		}
 
 		for (int x = 0; x < w; ++x) {
-			if (rowV > 0) matrix->setPixelHSV(x, y, POWEROFF_DEFAULT_HUE, POWEROFF_DEFAULT_SAT, rowV);
+			if (rowV > 0) matrix.setPixelHSV(x, y, POWEROFF_DEFAULT_HUE, POWEROFF_DEFAULT_SAT, rowV);
 		}
 	}
 

@@ -61,8 +61,10 @@ bool StorageManager::loadSerializable(const char* ns, const char* key, ISerializ
     size_t got = prefs.getBytes(key, bufPtr, readLen);
     prefs.end();
     bool ok = false;
-    if (got > 0) {
+    if (got == readLen) {
         ok = obj.deserialize(bufPtr, got);
+    } else {
+        LOGF("Storage", "loadSerializable: partial/failed read ns=%s key=%s expected=%u got=%u\n", ns, key, (unsigned)readLen, (unsigned)got);
     }
     LOGF("Storage", "loadSerializable ns=%s key=%s stored=%u read=%u got=%u ok=%d\n", ns, key, (unsigned)storedLen, (unsigned)readLen, (unsigned)got, (int)ok);
     return ok;

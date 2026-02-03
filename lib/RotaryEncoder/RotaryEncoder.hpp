@@ -1,8 +1,9 @@
 ﻿#ifndef ROTARY_ENCODER_HPP
 #define ROTARY_ENCODER_HPP
 #include <Arduino.h>
+#include <stdint.h>
 
-// Пины энкодера; можно переопределить через build_flags (-DROTARY_...=pin).
+// Encoder pins; can be overridden via build flags (-DROTARY_...=pin).
 #ifndef ROTARY_CLK_PIN
 #define ROTARY_CLK_PIN 4
 #endif
@@ -13,12 +14,12 @@
 #define ROTARY_SW_PIN 5
 #endif
 
-// Настройки подавления дребезга кнопки; можно переопределить через build_flags.
+// Button debounce settings; can be overridden via build flags.
 #ifndef ROTARY_BTN_DEBOUNCE_MS
-#define ROTARY_BTN_DEBOUNCE_MS 120
+#define ROTARY_BTN_DEBOUNCE_MS 50
 #endif
 
-// Границы энкодера по умолчанию (можно переопределить до подключения заголовка).
+// Default encoder boundaries (can be overridden before including this header).
 #ifndef ENC_MIN
 #define ENC_MIN -32768
 #endif
@@ -26,7 +27,7 @@
 #define ENC_MAX 32767
 #endif
 
-// Пороговые значения для ускорения энкодера (мс).
+// Threshold values for encoder acceleration (ms).
 #ifndef ENCODER_ACCEL_THRESH_SLOW
 #define ENCODER_ACCEL_THRESH_SLOW 100
 #endif
@@ -38,7 +39,7 @@ class RotaryEncoder {
 public:
     enum Event { NONE, PRESS_START, PRESS_END, INCREMENT, DECREMENT };
 
-    // Интерфейс слушателя событий энкодера.
+    // Interface for encoder event listener.
     class IEncoderListener {
     public:
         virtual void onEvent(Event ev, int value) = 0;
@@ -52,10 +53,10 @@ public:
     void setValue(int v);
     void setBoundaries(int minV, int maxV, bool wrap);
 
-    // Настройка ускорения/скорости.
+    // Configure acceleration/speed parameters.
     void setAccelParams(unsigned long med_ms, unsigned long fast_ms, int med_mult, int fast_mult = 3, float filterAlpha = 0.3f);
 
-    // Управление ускорением во время работы контроллера.
+    // Runtime control of acceleration behavior.
     void setAccelMultipliers(int med_mult, int fast_mult);
     void setAccelThresholds(unsigned long med_ms, unsigned long fast_ms);
     void setAccelEnabled(bool enabled);
@@ -66,8 +67,8 @@ public:
 private:
     uint8_t _clkPin, _dtPin, _swPin;
     int _steps;
-    int _value;
-    int _minV, _maxV;
+    int32_t _value;
+    int32_t _minV, _maxV;
     bool _wrap;
 
     static const int MAX_LISTENERS = 4;
@@ -81,12 +82,12 @@ private:
 
     void notify(Event ev, int value);
 
-    // Состояния квадратуры/дребезга на экземпляр (поддержка нескольких энкодеров).
+    // Per-instance quadrature/debounce state (supports multiple encoders).
     uint8_t _lastState;
     int     _accum; // allow accumulation of multiple transitions between updates
     uint8_t _lastRawSw;
 
-    // Состояния и параметры скорости/ускорения.
+    // Velocity/acceleration state and parameters.
     unsigned long _lastStepMillis;
     float _vel;                  // smoothed instantaneous velocity (steps/sec)
     float _velFilterAlpha;       // EMA alpha
@@ -95,9 +96,9 @@ private:
     int _accelMedMult;           // medium multiplier
     int _accelFastMult;          // fast multiplier
 
-    bool _accelEnabled;         // Включение/выключение поведения ускорения.
+    bool _accelEnabled;         // Enable/disable acceleration behavior.
 
-    // Безопасность: максимум «полных шагов» за один update (предотвращает большие скачки).
+    // Safety: maximum full steps per update (prevents large jumps).
     static const int MAX_FULL_STEPS_PER_UPDATE = 16;
 };
 

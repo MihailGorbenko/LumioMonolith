@@ -25,12 +25,6 @@ public:
 
     void render() override;
 
-private:
-    LedMatrix* matrix;
-    uint8_t hue;
-    uint8_t sat;
-    uint8_t val;
-    uint8_t progress; // 0..255
 };
 
 #endif // POWERON_ANIMATION_HPP

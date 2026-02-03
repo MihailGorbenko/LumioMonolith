@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h> // abs(int).
 
-// Изменённый конструктор: количество шагов по умолчанию — 1.
+// Modified constructor: default steps = 1.
 RotaryEncoder::RotaryEncoder()
         : _clkPin(ROTARY_CLK_PIN), _dtPin(ROTARY_DT_PIN), _swPin(ROTARY_SW_PIN),
             _steps(1),
@@ -18,7 +18,7 @@ RotaryEncoder::RotaryEncoder()
     for (int i = 0; i < MAX_LISTENERS; ++i) _listeners[i] = nullptr;
 }
 
-// Таблица переходов остаётся в файле.
+// Transition table used for quadrature decoding.
 static const int8_t TRANS_TABLE[16] = {
     0,  1, -1,  0,
    -1,  0,  0,  1,
@@ -33,11 +33,11 @@ void RotaryEncoder::setAccelParams(unsigned long med_ms, unsigned long fast_ms, 
     _accelMedMs = med_ms;
     _accelFastMs = fast_ms;
     _accelMedMult = (med_mult > 0) ? med_mult : 2;
-    _accelFastMult = (fast_mult > 0) ? fast_mult : 3; // Быстрый множитель по умолчанию — ×3.
+    _accelFastMult = (fast_mult > 0) ? fast_mult : 3; // Default fast multiplier = ×3.
     _velFilterAlpha = filterAlpha;
 }
 
-// Управление ускорением в рантайме со стороны контроллера.
+// Runtime control of acceleration from the controller.
 void RotaryEncoder::setAccelMultipliers(int med_mult, int fast_mult) {
     if (med_mult > 0 && med_mult < 10) _accelMedMult = med_mult;  // reasonable bounds: 1..9
     if (fast_mult > 0 && fast_mult < 10) _accelFastMult = fast_mult;  // reasonable bounds: 1..9
@@ -56,17 +56,17 @@ void RotaryEncoder::init() {
     pinMode(_dtPin, INPUT_PULLUP);
     pinMode(_swPin, INPUT_PULLUP);
 
-    // Инициализируем конечный автомат (на экземпляр).
+    // Initialize the finite-state machine (per instance) for quadrature decoding.
     _lastState = (digitalRead(_clkPin) << 1) | digitalRead(_dtPin);
     _accum = 0;
 
-    // Инициализируем состояния подавления дребезга согласованно.
+    // Initialize button debounce state consistently.
     _swState = digitalRead(_swPin);
     _lastRawSw = _swState;
     _btnDown = (_swState == LOW);
     _lastSwMillis = millis();
 
-    // Сброс временных меток скорости/шагов.
+    // Reset timing stamps for step/velocity.
     _lastStepMillis = 0;
     _vel = 0.0f;
 }
@@ -84,7 +84,7 @@ void RotaryEncoder::setValue(int v) {
 }
 
 void RotaryEncoder::setBoundaries(int minV, int maxV, bool wrap) {
-    // Гарантируем, что min <= max.
+    // Ensure min <= max.
     if (minV > maxV) {
         int tmp = minV;
         minV = maxV;
@@ -115,65 +115,65 @@ void RotaryEncoder::detachListener(IEncoderListener* l) {
 }
 
 void RotaryEncoder::notify(Event ev, int value) {
-    // Безопасная итерация: проверяем nullptr на каждом шаге (слушатель может отписаться во время коллбэка).
+    // Safe iteration: check for nullptr on each call (listener may detach during callback).
     for (int i = 0; i < _listenerCount; ++i) {
         if (_listeners[i]) _listeners[i]->onEvent(ev, value);
     }
 }
 
-// Основная логика опроса: вызывать часто (loop).
+// Main polling logic: call frequently from the loop.
 void RotaryEncoder::update() {
-    // Считываем входы один раз.
+    // Read inputs once.
     int clk = digitalRead(_clkPin);
     int dt  = digitalRead(_dtPin);
     int sw  = digitalRead(_swPin);
     unsigned long now = millis();
 
-    // Вращение: используем таблицу переходов (квадратурный автомат).
+    // Rotation: use transition table (quadrature state machine).
     uint8_t cur = (clk << 1) | dt;
     if (cur != _lastState) {
         uint8_t idx = (_lastState << 2) | cur;
         int8_t delta = TRANS_TABLE[idx];
 
-        // Если delta == 0: пропускаем (шум или скачок на 2+ состояния).
-        // Восстановление через STATE_TO_POS_IDX может потерять шаги — не используем.
+        // If delta == 0: skip (noise or multi-state jump).
+        // Restoring via state->position mapping may lose steps — avoid that.
         if (delta != 0) {
             _accum += delta;
-            // Защита от переполнения аккумулятора: клампим к безопасному диапазону.
-            if (_accum > 127) _accum = 127;  // ~31 полных шага — безопасная граница.
+            // Protect accumulator from overflow: clamp to a safe range.
+            if (_accum > 127) _accum = 127;  // ~31 full steps — safe limit.
             else if (_accum < -127) _accum = -127;
 
-            // Полушаговые энкодеры считаем одним полным шагом на щелчок.
+            // Treat half-step encoders as one full step per click.
             int fullSteps = _accum / 2;
-            // Ограничиваем, но плавно (без резких скачков).
+            // Limit step burst to a maximum per update to avoid large jumps.
             if (fullSteps > (int)MAX_FULL_STEPS_PER_UPDATE) fullSteps = MAX_FULL_STEPS_PER_UPDATE;
             else if (fullSteps < -(int)MAX_FULL_STEPS_PER_UPDATE) fullSteps = -((int)MAX_FULL_STEPS_PER_UPDATE);
 
             if (fullSteps != 0) {
                 const int stepsAbs = abs(fullSteps);
 
-                // dt на переполнении millis() безопасен через беззнаковое вычитание.
+                // dt using millis() subtraction is wrap-safe (unsigned subtraction).
                 unsigned long dt_ms = (_lastStepMillis == 0) ? 1UL : (unsigned long)(now - _lastStepMillis);
-                // Примечание: минимум 1UL для первого шага, чтобы избежать нулевой скорости.
+                // Note: use minimum 1UL for the first step to avoid zero velocity.
 
-                // Улучшена фильтрация скорости: расчёт по шагам вместо пакетного.
+                // Improved velocity filtering: compute per-step instead of batch.
                 float inst_vel = 0.0f;
                 if (dt_ms > 0 && stepsAbs > 0) {
-                    // Вычисляем среднее время между шагами.
+                    // Compute average time per step.
                     float perStepMs = (float)dt_ms / (float)stepsAbs;
                     if (perStepMs > 0.1f) {
-                        inst_vel = 1000.0f / perStepMs;  // Шаги в секунду.
-                        if (inst_vel > 0.0f && inst_vel < 1000.0f) {  // Разумные границы.
-                            // Более высокий коэффициент (0.6) для быстрого отклика.
+                        inst_vel = 1000.0f / perStepMs;  // steps per second.
+                        if (inst_vel > 0.0f && inst_vel < 1000.0f) {  // reasonable bounds.
+                            // Use higher weight (0.6) for faster response.
                             _vel = 0.6f * inst_vel + 0.4f * _vel;
                         }
                     }
                 }
 
-                // Ускорение на основе мгновенной скорости, а не пакетного времени.
+                // Acceleration based on instantaneous velocity rather than batch time.
                 int mult = 1;
                 if (_accelEnabled && inst_vel > 0.0f) {
-                    // Порог ускорения в шагах/сек.
+                    // Acceleration thresholds are expressed in steps/sec.
                     float fastThresholdVel = 1000.0f / (float)_accelFastMs;
                     float medThresholdVel = 1000.0f / (float)_accelMedMs;
 
@@ -181,33 +181,33 @@ void RotaryEncoder::update() {
                     else if (inst_vel >= medThresholdVel) mult = _accelMedMult;
                 }
 
-                int old = _value;
-                // Применяем все полные шаги сразу (с учётом знака).
-                int deltaValue = fullSteps * _steps * mult;
-                int newValue = _value + deltaValue;
+                int32_t old = _value;
+                // Apply all full steps at once (preserve sign). Perform calculations in 32-bit.
+                int32_t deltaValue = (int32_t)fullSteps * (int32_t)_steps * (int32_t)mult;
+                int32_t newValue = (int32_t)_value + deltaValue;
 
                 if (_wrap) {
-                    int range = (_maxV - _minV) + 1;
-                    if (range > 1) {  // Применять кольцо, только если диапазон больше 1 значения.
-                        int offset = (newValue - _minV) % range;
+                    int32_t range = (int32_t)(_maxV) - (int32_t)(_minV) + 1;
+                    if (range > 1) {  // Apply wrapping only when the range contains more than 1 value.
+                        int32_t offset = ((int32_t)newValue - (int32_t)_minV) % range;
                         if (offset < 0) offset += range;
-                        newValue = _minV + offset;
+                        newValue = (int32_t)_minV + offset;
                     } else if (range == 1) {
-                        // Единственное значение: всегда остаёмся на min (равно max).
+                        // Single-value range: always stay at min (equals max).
                         newValue = _minV;
                     }
-                    // Если range <= 0, игнорируем (некорректная конфигурация, кольцо не применяем).
+                    // If range <= 0, ignore (invalid configuration; do not apply wrap).
                 } else {
-                    if (newValue > _maxV) newValue = _maxV;
-                    if (newValue < _minV) newValue = _minV;
+                    if (newValue > (int32_t)_maxV) newValue = _maxV;
+                    if (newValue < (int32_t)_minV) newValue = _minV;
                 }
 
-                _value = newValue;
+                _value = (int32_t)newValue;
                 if (_value != old) {
-                    notify((fullSteps > 0) ? INCREMENT : DECREMENT, _value);
+                    notify((fullSteps > 0) ? INCREMENT : DECREMENT, (int)_value);
                 }
 
-                _accum -= fullSteps * 2; // Оставляем остаток (-1..1).
+                _accum -= fullSteps * 2; // Leave the remainder (-1..1).
                 _lastStepMillis = now;
             }
         }
@@ -215,7 +215,7 @@ void RotaryEncoder::update() {
         _lastState = cur;
     }
 
-    // Дребезг кнопки (оставляем схему «raw отдельно, debounced отдельно»).
+    // Button debounce (keep raw and debounced states separate).
     if (sw != _lastRawSw) {
         _lastRawSw = sw;
         _lastSwMillis = now;

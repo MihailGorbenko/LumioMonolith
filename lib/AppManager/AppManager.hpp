@@ -91,10 +91,14 @@ private:
     StateReqSource pendingStateSource = StateReqSource::System;
 
     // Click/rotation protections
+    // blockRotationThisFrame: ignore encoder rotation for the current update frame
+    // blockRotationNextFrame: set to block rotation on the next update frame
     bool blockRotationThisFrame = false;
     bool blockRotationNextFrame = false;
+    // click sequence tokens to ensure one logical click -> at most one FSM transition
     uint32_t clickSeq = 0;
     uint32_t handledClickSeq = 0;
+    // fsmLocked prevents multiple transitions from the same click token
     bool fsmLocked = false;
 
     void requestState(State s, StateReqSource src = StateReqSource::User);
@@ -109,6 +113,8 @@ private:
     State prevState;
 
     // --- Input / debounce / click timing ---
+    // All timestamp fields use unsigned long (Arduino millis()) and should be
+    // used with wrap-safe subtraction (now - prev) to compute intervals.
     bool btnDown;
     unsigned long btnStartMs;
     unsigned long lastActivityMs;
@@ -127,30 +133,44 @@ private:
     PowerOffAnimation powerOffAnim;
     bool overlayOnActive;
     bool overlayOffActive;
+    // Timestamp when shutdown overlay began (millis())
     unsigned long shutdownBeginMs;
-    uint8_t shutdownStartProg; // стартовое значение прогресса при входе в Shutdown (0..255)
-    uint8_t overlayOffProg;    // текущее установленное значение прогресса (0..255)
-    uint8_t overlayOnProg;     // текущий прогресс стартап-оверлея (0..255)
-    unsigned long lastOverlayOnMs; // время последнего обновления прогресса
+    // starting progress value when entering Shutdown (0..255)
+    uint8_t shutdownStartProg;
+    // current progress values for overlays (0..255)
+    uint8_t overlayOffProg;
+    uint8_t overlayOnProg;
+    // last overlay progress update time (millis())
+    unsigned long lastOverlayOnMs;
 
     // --- Startup sequence ---
+    // Timestamps in milliseconds for startup overlay sequencing
     unsigned long startupBeginMs;
     bool startupLoadedAnim;
     unsigned long startupLoadedMs;
 
     // --- Encoder base/value ---
+    // encBaseValue holds the raw encoder position base used to compute deltas
     int encBaseValue;
 
     // --- Brightness / color ---
     uint8_t brightness;
     std::vector<uint8_t> gammaLUT; // size 256
+    // brightness and color ticks are small integers used for UI sliders
     int brightTicks; // 0..APP_BRIGHTNESS_TICKS
     int colorTicks;  // 0..APP_COLOR_TICKS
 
     // --- Persistence / config ---
     AppCfg appCfg;
-    AppCfg savedAppCfg;     // последний сохранённый снимок приложения
-    bool savedAppCfgInit;   // признак инициализации снимка
+    AppCfg savedAppCfg;     // last persisted snapshot of app configuration
+    bool savedAppCfgInit;   // indicates savedAppCfg is initialized
+    bool configDirty{false};
+
+    // Persistence helpers for AppManager
+    // mark configuration dirty (needs to be saved later)
+    void setConfigDirty();
+    // clear dirty flag after a successful save
+    void clearConfigDirty();
 
     // --- Helpers ---
     void setState(State s);

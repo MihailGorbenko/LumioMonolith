@@ -2,7 +2,7 @@
 #include <cstring>
 #include <cstdio>
 
-AnimationBase::AnimationBase(uint8_t defH, uint16_t id, LedMatrix* m)
+AnimationBase::AnimationBase(uint8_t defH, uint16_t id, LedMatrix& m)
     : animCfg(defH), animId(id), configDirty(false), initialized(false), matrix(m) {}
 
 

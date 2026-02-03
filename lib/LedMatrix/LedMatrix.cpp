@@ -6,22 +6,22 @@ LedMatrix::LedMatrix() {
 
 
 void LedMatrix::init() {
-    FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000); // Ограничение по питанию.
-    FastLED.setDither(false);                         // Отключаем диффузию, чтобы избежать вспышек при старте.
-    FastLED.setBrightness(0);                         // Стартуем с нулевой яркости, чтобы исключить «вспышку».
+    FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000); // Power limit.
+    FastLED.setDither(false);                         // Disable dithering to avoid startup flicker.
+    FastLED.setBrightness(0);                         // Start with zero brightness to prevent a flash.
     FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
-    // Немедленно погасить все диоды.
+    // Immediately clear all LEDs.
     fill_solid(leds, NUM_LEDS, CRGB::Black);
     FastLED.show();
-    // Вернуть системную яркость FastLED к 255: далее используем собственный masterBrightness.
+    // Restore FastLED system brightness to 255; further brightness is controlled by masterBrightness.
     FastLED.setBrightness(255);
-    // Очистить буферы и отобразить чёрный кадр.
+    // Clear buffers and display a black frame.
     clear();
     update();
 }
 
 void LedMatrix::clear() {
-    fill_solid(baseLeds, NUM_LEDS, CRGB::Black); // Очищаем буфер исходных цветов.
+    fill_solid(baseLeds, NUM_LEDS, CRGB::Black); // Clear base color buffer.
     fill_solid(leds, NUM_LEDS, CRGB::Black);
 }
 
@@ -38,13 +38,13 @@ void LedMatrix::setPixelHSV(int x, int y, uint8_t h, uint8_t s, uint8_t v) {
     }
     int index = XY(x, y);
     if (index < 0 || index >= NUM_LEDS) {
-        return;  // Дополнительная проверка: XY может вернуть некорректный индекс.
+        return;  // Additional check: XY may return an invalid index.
     }
-    // Сохраняем исходный цвет в RGB, затем масштабируем копию для вывода.
+    // Save the original color in RGB, then scale a copy for output.
     CRGB orig = CHSV(h, s, v);
     baseLeds[index] = orig;
     CRGB out = orig;
-    out.nscale8_video(masterBrightness); // Сохраняет пропорции каналов — насыщенность не «выгорает».
+    out.nscale8_video(masterBrightness); // Preserve channel proportions — saturation won't wash out.
     leds[index] = out;
 }
 
@@ -56,7 +56,7 @@ void LedMatrix::powerOff() {
 
 
 void LedMatrix::setMasterBrightness(uint8_t b) {
-    // Приводим вход к диапазону 0..255.
+    // Clamp input to range 0..255.
     uint8_t newB = (uint8_t)constrain(b, 0, 255);
 
     if (newB == this->masterBrightness) {
@@ -64,7 +64,7 @@ void LedMatrix::setMasterBrightness(uint8_t b) {
     }
 
     this->masterBrightness = newB;
-    // Пересчитываем все выводимые цвета из baseLeds с новым масштабом.
+    // Recompute all output colors from baseLeds using the new scale.
     for (int i = 0; i < NUM_LEDS; ++i) {
         CRGB out = baseLeds[i];
         out.nscale8_video(this->masterBrightness);
@@ -74,18 +74,18 @@ void LedMatrix::setMasterBrightness(uint8_t b) {
 }
 
 int LedMatrix::XY(int x, int y) {
-    // Преобразование координат (x, y) в индекс массива.
-    // Компоновка: 5 горизонтальных строк по 15 диодов, змейкой снизу вверх.
-    // Первая (нижняя) строка — слева направо; следующая выше — справа налево.
-    // Логический origin — сверху слева (y=0), поэтому вычисляем физический индекс строки от низа.
+    // Convert (x, y) coordinates to array index.
+    // Layout: 5 horizontal rows of 15 LEDs, wired in a serpentine pattern bottom-to-top.
+    // The first (bottom) row is left-to-right; the next row above is right-to-left.
+    // Logical origin is top-left (y=0), so compute the physical row from the bottom.
     if (x < 0 || x >= m_width || y < 0 || y >= m_height) {
-        return -1; // Безопасный возврат при некорректных координатах.
+        return -1; // Safe return for invalid coordinates.
     }
-    int physRow = (m_height - 1 - y); // 0 — нижняя строка.
+    int physRow = (m_height - 1 - y); // 0 is the bottom row.
     int rowBase = physRow * m_width;
-    if ((physRow & 1) == 0) { // Чётная строка от низа: слева→справа.
+    if ((physRow & 1) == 0) { // Even row from bottom: left→right.
         return rowBase + x;
     } else { // Нечётная строка от низа: справа→слева.
-        return rowBase + (m_width - 1 - x);
+        return rowBase + (m_width - 1 - x); // Odd row from bottom: right→left.
     }
 }

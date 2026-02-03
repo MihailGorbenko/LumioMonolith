@@ -11,7 +11,7 @@
 #define DBG_PRINTF(...)
 #endif
 
-// Вспомогательные величины для расчёта дельты энкодера.
+// Helper constants for computing encoder delta.
 static const int ENC_RANGE = (ENC_MAX - ENC_MIN + 1);
 static const int ENC_HALF = (ENC_RANGE / 2);
 
@@ -63,7 +63,7 @@ void AppManager::begin() {
     DBG_PRINTLN("[AppManager] Init");
     encBaseValue = 0;
 
-    // Построение гамма-LUT для диапазона 0..255.
+    // Build gamma LUT for range 0..255.
     gammaLUT.resize(256);
     for (int i = 0; i < 256; ++i) {
         float norm = (float)i / 255.0f;
@@ -79,13 +79,13 @@ void AppManager::begin() {
                (unsigned)brightness, (unsigned)appCfg.powerOn, (int)okLoad);
     applyBrightness();
 
-    // Зафиксировать начальный снимок сохранённой конфигурации.
+    // Capture initial snapshot of loaded configuration.
     savedAppCfg = appCfg;
     savedAppCfgInit = true;
 
     // AnimationManager now loads/activates current animation in its init().
 
-    // Инициализация «тиков» из загруженной яркости.
+    // Initialize tick counters from loaded brightness.
     {
         int range = (int)APP_BRIGHTNESS_MAX - (int)APP_BRIGHTNESS_MIN;
         int b = (int)brightness - (int)APP_BRIGHTNESS_MIN;
@@ -95,19 +95,21 @@ void AppManager::begin() {
         if (brightTicks > APP_BRIGHTNESS_TICKS) brightTicks = APP_BRIGHTNESS_TICKS;
     }
 
-    // Старт в состоянии, соответствующем сохранённой конфигурации питания.
+    // Start in state corresponding to saved power configuration.
     if (appCfg.powerOn) {
         setState(State::Startup);
     } else {
         setState(State::Off);
     }
     lastActivityMs = millis();
+    // Initialize encoder activity timestamp to now to avoid treating startup as idle
+    lastEncoderActivityMs = lastActivityMs;
 }
 
 void AppManager::update() {
     unsigned long now = millis();
 
-    // Сброс флага изменений состояния для текущего кадра
+    // Clear state-changed flag for this frame
     stateChangedThisFrame = false;
 
     // Transfer deferred rotation block flag into active block for this update.
@@ -116,30 +118,40 @@ void AppManager::update() {
     blockRotationThisFrame = blockRotationNextFrame;
     blockRotationNextFrame = false;
 
-    // Обновление состояния энкодера.
+    // Update encoder state.
     if (encoder) encoder->update();
 
-    // Обновление оверлеев и тайм-аутов переходов.
+    // Update overlays and transition timeouts.
     updateOverlays(now);
 
-    // Обработка перехода при простое.
+    // Handle idle-triggered transitions.
     handleIdle(now);
+
+    // Autosave app config: if configDirty and no encoder activity for idle timeout, persist appCfg.
+    if (configDirty) {
+        unsigned long idleDtEnc = (now >= lastEncoderActivityMs) ? (now - lastEncoderActivityMs) : 0UL;
+        if (idleDtEnc >= APP_IDLE_TIMEOUT_MS) {
+            DBG_PRINTF("[Autosave] saving appCfg after %lu ms idle\n", idleDtEnc);
+            saveState();
+            clearConfigDirty();
+        }
+    }
 
     // Run animation manager periodic tasks independent of render FPS
     if (animMgr) animMgr->update();
 
-    // Управление частотой рендеринга.
+    // Control render frequency.
     unsigned long elapsed = now - lastFrameMs;
     bool due = (elapsed >= frameIntervalMs);
     if (due) lastFrameMs = now;
 
-    // Рендерить, когда наступило время (и не Off/Shutdown), активен оверлей или требуется Startup.
+    // Render when due (and not Off/Shutdown), or when overlay/startup is active.
     bool canRender = (state != State::Off && state != State::Shutdown);
     if ((due && canRender) || overlayOnActive || overlayOffActive || state == State::Startup) {
         renderFrame();
     }
 
-    // Выполнить отложенный переход состояния (только один за кадр)
+    // Apply a pending state transition (at most one per frame)
     if (pendingState != State::None) {
         setState(pendingState);
         // record source of this applied transition and clear pending source
@@ -151,7 +163,7 @@ void AppManager::update() {
         blockRotationNextFrame = true;
     }
 
-    // Allow one click-driven FSM transition per frame only; reset lock here so next update can accept clicks again.
+    // Allow one click-driven FSM transition per frame only; reset lock here so next update can accept clicks.
     fsmLocked = false;
 }
 
@@ -162,7 +174,7 @@ void AppManager::setState(State s) {
     prevState = state;
     state = s;
     onEnter(state);
-    // record the time of the state change to throttle rapid successive requests
+    // Record the time of the state change to throttle rapid successive requests
     lastStateChangeMs = millis();
     // default source when setState is called directly is System
     lastStateChangeSource = StateReqSource::System;
@@ -221,7 +233,7 @@ void AppManager::requestState(State s, StateReqSource src) {
 }
 
 void AppManager::onEnter(State s) {
-    // reset encoder transient context on each state entry to avoid carrying _accum/_vel across modes
+    // Reset encoder transient context on each state entry to avoid carrying _accum/_vel across modes
     if (encoder) encoder->resetContext();
 
     switch (s) {
@@ -230,20 +242,27 @@ void AppManager::onEnter(State s) {
             overlayOnActive = false; overlayOffActive = false;
             if (animMgr) animMgr->unsetOverlay();
             DBG_PRINTLN("[FSM] Enter OFF");
+            // Ensure animations are persisted on power-off even if app config isn't dirty.
+            if (animMgr) animMgr->forceSave();
+            // If application config changed, persist it as well.
+            if (configDirty) {
+                saveState();
+                clearConfigDirty();
+            }
             break;
 
         case State::Startup:
             startupLoadedAnim = false;
             overlayOnActive = true;
             overlayOffActive = false;
-            // Немедленно подготовить оверлей: прогресс 0 и чёрный кадр, чтобы избежать вспышки.
+            // Prepare overlay immediately: progress 0 and a black frame to avoid flash.
             overlayOnProg = 0;
             powerOnAnim.setProgress(overlayOnProg);
             if (matrix) { matrix->clear(); matrix->update(); }
-            // Пометить состояние питания как включённое и сохранить.
+            // Mark power state as ON and mark config dirty.
             appCfg.powerOn = 1;
-            saveState();
-            // Старт измерения времени оверлея после потенциально долгих операций сохранения.
+            setConfigDirty();
+            // Start measuring overlay time after potentially long save operations.
             startupBeginMs = millis();
             lastOverlayOnMs = startupBeginMs;
             startupLoadedMs = 0;
@@ -255,7 +274,7 @@ void AppManager::onEnter(State s) {
         case State::Brightness:
             overlayOnActive = false; overlayOffActive = false;
             if (animMgr) animMgr->unsetOverlay();
-            // Настройка энкодера для «тиков» яркости (0..APP_BRIGHTNESS_TICKS, без кольца).
+            // Configure encoder for brightness ticks (0..APP_BRIGHTNESS_TICKS, no wrap).
             if (encoder) {
                 encoder->setBoundaries(0, APP_BRIGHTNESS_TICKS, false);
                 encoder->setAccelEnabled(true);
@@ -269,7 +288,7 @@ void AppManager::onEnter(State s) {
         case State::Animation:
             overlayOnActive = false; overlayOffActive = false;
             if (animMgr) animMgr->unsetOverlay();
-            // Один щелчок — одна смена анимации: отключить ускорение.
+            // One click -> one animation change: disable acceleration.
             if (encoder) {
                 encoder->setAccelEnabled(false);
             }
@@ -279,7 +298,7 @@ void AppManager::onEnter(State s) {
         case State::Color:
             overlayOnActive = false; overlayOffActive = false;
             if (animMgr) animMgr->unsetOverlay();
-            // Настройка энкодера для «тиков» оттенка (0..APP_COLOR_TICKS, без кольца) с ускорением.
+            // Configure encoder for hue ticks (0..APP_COLOR_TICKS, no wrap) with acceleration.
             if (encoder) {
                 // derive ticks from current animation hue by reading stored anim config
                 int curTicks = 0;
@@ -288,7 +307,7 @@ void AppManager::onEnter(State s) {
                     if (aid != 0) {
                         char keyBuf[16];
                         snprintf(keyBuf, sizeof(keyBuf), "a%u", (unsigned)aid);
-                        // read anim config into temp
+                        // Read animation config into temporary
                         AnimConfig temp;
                         if (storage->loadSerializable("anim", keyBuf, temp)) {
                             curTicks = hueToTicks(temp.hue);
@@ -306,15 +325,15 @@ void AppManager::onEnter(State s) {
             break;
 
         case State::Shutdown:
-            // Запускаем плейаут оверлея выключения: продолжаем гасить до конца.
+            // Start shutdown overlay playout: continue fading until complete.
             overlayOnActive = false;
             overlayOffActive = true;
             shutdownBeginMs = millis();
-            // Начать с текущего прогресса, накопленного во время удержания.
+            // Start from current progress accumulated during the hold.
             shutdownStartProg = overlayOffProg;
-            // Пометить состояние питания как выключенное и сохранить.
+            // Mark power state as OFF and mark config dirty.
             appCfg.powerOn = 0;
-            saveState();
+            setConfigDirty();
             DBG_PRINTLN("[FSM] Enter SHUTDOWN");
             break;
     }
@@ -323,26 +342,25 @@ void AppManager::onEnter(State s) {
 void AppManager::onExit(State s) {
     switch (s) {
         case State::Brightness:
-            // Сохранить конфигурацию приложения при выходе из Brightness.
-            saveState();
-            // Восстановить границы энкодера на значения по умолчанию с кольцом.
+            // If master brightness was changed, update appCfg and mark dirty.
+            if (!savedAppCfgInit || (uint16_t)brightness != savedAppCfg.masterBrightness) {
+                appCfg.masterBrightness = (uint16_t)brightness;
+                setConfigDirty();
+            }
+            // Restore encoder boundaries to default with wrap.
             if (encoder) {
                 encoder->setBoundaries(ENC_MIN, ENC_MAX, true);
             }
             break;
         case State::Animation:
-            // Сохранить конфигурацию приложения (последний ID анимации) при выходе.
-            saveState();
-            // Включить ускорение для остальных состояний.
+            // Animation changes (current animation id) are managed and persisted by AnimationManager.
+            // Re-enable acceleration for other states.
             if (encoder) {
                 encoder->setAccelEnabled(true);
             }
             break;
         case State::Color: {
-            // Сохранить конфигурацию текущей анимации при выходе, только если она изменена.
-            if (animMgr) {
-                animMgr->saveCurrentAnimationIfDirty();
-            }
+            // AnimationManager is responsible for saving animation configs; no-op here.
             // Восстановить границы энкодера на значения по умолчанию с кольцом.
             if (encoder) {
                 encoder->setBoundaries(ENC_MIN, ENC_MAX, true);
@@ -368,22 +386,16 @@ void AppManager::handleIdle(unsigned long now) {
     if (state == State::Animation || state == State::Color) {
         unsigned long idleDt = (now >= lastEncoderActivityMs) ? (now - lastEncoderActivityMs) : 0UL;
         if (idleDt >= APP_IDLE_TIMEOUT_MS) {
-            // Persist before switching
-            if (state == State::Animation) {
-                saveState();
-            } else if (state == State::Color) {
-                if (animMgr) {
-                    animMgr->saveCurrentAnimationIfDirty();
-                }
+            // Persist only animation-specific config here; app config autosave is handled globally in update().
+            // AnimationManager handles saving animation configs via its own autosave/forceSave.
+
+            // If there is a pending user-driven transition, don't let Idle preempt it.
+            if (pendingState != State::None && pendingStateSource == StateReqSource::User) {
+                DBG_PRINTF("[Idle] skip: pending user transition exists (pending=%d)\n", (int)pendingState);
+                return;
             }
-            }
-                // If there is a pending user-driven transition, don't let Idle preempt it.
-                if (pendingState != State::None && pendingStateSource == StateReqSource::User) {
-                    DBG_PRINTF("[Idle] skip: pending user transition exists (pending=%d)\n", (int)pendingState);
-                    return;
-                }
-                DBG_PRINTF("[Idle] timeout: now=%lu lastEncActivity=%lu dt=%lu -> Brightness\n", now, lastEncoderActivityMs, idleDt);
-                requestState(State::Brightness, StateReqSource::Idle);
+            DBG_PRINTF("[Idle] timeout: now=%lu lastEncActivity=%lu dt=%lu -> Brightness\n", now, lastEncoderActivityMs, idleDt);
+            requestState(State::Brightness, StateReqSource::Idle);
         }
     }
 }
@@ -619,6 +631,10 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
                 brightness = brightnessFromTicks(brightTicks);
                 applyBrightness();
                 DBG_PRINTF("[Brightness] ticks=%d val=%u\n", brightTicks, (unsigned)brightness);
+                    // Mark app config dirty when brightness differs from last saved value.
+                    if (!savedAppCfgInit || (uint16_t)brightness != savedAppCfg.masterBrightness) {
+                        setConfigDirty();
+                    }
                 break;
             }
             case State::Animation: {
@@ -704,4 +720,14 @@ bool AppManager::loadState() {
     // Let AnimationManager handle any last-animation restore
     DBG_PRINTF("[NVS] load app: brightness=%u powerOn=%u ok=%d\n", (unsigned)brightness, (unsigned)appCfg.powerOn, (int)ok);
     return ok;
+}
+
+// Mark that the app configuration was changed and needs persistence.
+void AppManager::setConfigDirty() {
+    configDirty = true;
+}
+
+// Clear dirty flag after configuration has been persisted.
+void AppManager::clearConfigDirty() {
+    configDirty = false;
 }

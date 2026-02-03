@@ -22,7 +22,7 @@
 
 class SegmentRunnerAnimation : public AnimationBase {
 public:
-    explicit SegmentRunnerAnimation(uint16_t id, LedMatrix* m);
+    explicit SegmentRunnerAnimation(uint16_t id, LedMatrix& m);
     void render() override;
       const char* getName() const override { return SEGMENTRUNNER_ANIMATION_NAME; }
 

@@ -7,7 +7,7 @@
 
 class AnimationManager {
 public:
-    explicit AnimationManager(StorageManager* s = nullptr) : storage(s) {}
+    explicit AnimationManager(StorageManager& s) : storage(s) {}
 
     // Add animation to the manager (does not take ownership)
     void addAnimation(AnimationBase* a);
@@ -21,7 +21,7 @@ public:
     // Select animation by its stable ID; keeps index consistent with switchToNext
     bool setAnimation(uint16_t id);
 
-    // Initialize manager with storage
+    
     void init();
 
     // Overlay control: set/unset system overlay animation
@@ -46,7 +46,7 @@ public:
     const char* getCurrentName() const;
 
 private:
-    StorageManager* storage{nullptr};
+    StorageManager& storage;
     bool configDirty{false};
     // persisted manager config
     AnimMngrCfg animCfg;
@@ -61,8 +61,6 @@ private:
     bool isConfigDirty() const;
     void setConfigDirty();
     void clearConfigDirty();
-    // Save current animation config if dirty
-    bool saveCurrentAnimationIfDirty();
     // Load configs for current animation and neighbors
-    void loadNeithboors();
+    void loadNeighbors();
 };

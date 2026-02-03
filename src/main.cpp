@@ -24,9 +24,10 @@
 LedMatrix matrix;
 RotaryEncoder rotary;
 StorageManager storage;
-AnimationManager animMgr;
+AnimationManager animMgr(storage);
+AppManager app(animMgr, rotary, matrix, storage);
 
-// Fixed animation IDs (replaces nextAnimId)
+
 #define ANIM_ID_STARS 1
 #define ANIM_ID_RAINBOW 2
 #define ANIM_ID_PLASMA 3
@@ -40,22 +41,22 @@ AnimationManager animMgr;
 #define ANIM_ID_REACTOR_TURBINES 11
 #define ANIM_ID_CHARGING_PULSE 12
 
-// Auto-generate stable unique IDs in declaration order
-// static uint16_t nextAnimId() { static uint16_t id = 1; return id++; }
 
-StarsAnimation stars(ANIM_ID_STARS, &matrix);
-RainbowChaseAnimation rainbow(ANIM_ID_RAINBOW, &matrix);
-PlasmaAnimation plasma(ANIM_ID_PLASMA, &matrix);
-SparkleWaveAnimation sparkleWave(ANIM_ID_SPARKLE_WAVE, &matrix);
-PulseWaveAnimation pulseWave(ANIM_ID_PULSE_WAVE, &matrix);
-SegmentRunnerAnimation segmentRunner(ANIM_ID_SEGMENT_RUNNER, &matrix);
-CenterPulseAnimation centerPulse(ANIM_ID_CENTER_PULSE, &matrix);
-MatrixCodeRainAnimation codeRain(ANIM_ID_CODE_RAIN, &matrix);
-EqualizerBarsAnimation equalizerBars(ANIM_ID_EQUALIZER_BARS, &matrix);
-EnergyCirclesAnimation energyCircles(ANIM_ID_ENERGY_CIRCLES, &matrix);
-ReactorTurbinesAnimation reactorTurbines(ANIM_ID_REACTOR_TURBINES, &matrix);
-ChargingPulseAnimation chargingPulse(ANIM_ID_CHARGING_PULSE, &matrix);
-AppManager app(animMgr, rotary, matrix, storage);
+
+StarsAnimation stars(ANIM_ID_STARS, matrix);
+RainbowChaseAnimation rainbow(ANIM_ID_RAINBOW, matrix);
+PlasmaAnimation plasma(ANIM_ID_PLASMA, matrix);
+SparkleWaveAnimation sparkleWave(ANIM_ID_SPARKLE_WAVE, matrix);
+PulseWaveAnimation pulseWave(ANIM_ID_PULSE_WAVE, matrix);
+SegmentRunnerAnimation segmentRunner(ANIM_ID_SEGMENT_RUNNER, matrix);
+CenterPulseAnimation centerPulse(ANIM_ID_CENTER_PULSE, matrix);
+MatrixCodeRainAnimation codeRain(ANIM_ID_CODE_RAIN, matrix);
+EqualizerBarsAnimation equalizerBars(ANIM_ID_EQUALIZER_BARS, matrix);
+EnergyCirclesAnimation energyCircles(ANIM_ID_ENERGY_CIRCLES, matrix);
+ReactorTurbinesAnimation reactorTurbines(ANIM_ID_REACTOR_TURBINES, matrix);
+ChargingPulseAnimation chargingPulse(ANIM_ID_CHARGING_PULSE, matrix);
+
+
 
 void setup() {
 	#if LOG_ENABLED
@@ -70,6 +71,8 @@ void setup() {
 	LOG_PRINTLN("Starting LumioMonolith...");
 	#endif
 
+	matrix.init();
+	rotary.init();
 		// Register animations with the manager
 	animMgr.addAnimation(&centerPulse);
 	animMgr.addAnimation(&pulseWave);
@@ -84,9 +87,6 @@ void setup() {
 	animMgr.addAnimation(&chargingPulse);
 	animMgr.addAnimation(&rainbow);
 
-
-	matrix.init();
-	rotary.init();
 	animMgr.init();
 	rotary.attachListener(&app);
 	

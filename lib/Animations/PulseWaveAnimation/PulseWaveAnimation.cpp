@@ -3,17 +3,16 @@
 #include <FastLED.h>
 
 
-PulseWaveAnimation::PulseWaveAnimation(uint16_t id, LedMatrix* m)
+PulseWaveAnimation::PulseWaveAnimation(uint16_t id, LedMatrix& m)
 		: AnimationBase(PULSEWAVE_DEFAULT_HUE, id, m),
 			pulseRadius(0) {}
 
 void PulseWaveAnimation::render() {
-	LedMatrix* m = matrix;
-	if (!m) return;
-	m->clear();
+	LedMatrix& m = matrix;
+	m.clear();
 
-	int w = m->getWidth();
-	int hgt = m->getHeight();
+	int w = m.getWidth();
+	int hgt = m.getHeight();
 	if (w <= 0) w = 1;
 	if (hgt <= 0) hgt = 1;
 

@@ -22,7 +22,7 @@
 
 class CenterPulseAnimation : public AnimationBase {
 public:
-    explicit CenterPulseAnimation(uint16_t id, LedMatrix* m);
+    explicit CenterPulseAnimation(uint16_t id, LedMatrix& m);
 
     void render() override;
 

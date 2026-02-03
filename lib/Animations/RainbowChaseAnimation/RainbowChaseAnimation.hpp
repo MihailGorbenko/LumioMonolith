@@ -23,7 +23,7 @@
 
 class RainbowChaseAnimation : public AnimationBase {
 public:
-	explicit RainbowChaseAnimation(uint16_t id, LedMatrix* m);
+	explicit RainbowChaseAnimation(uint16_t id, LedMatrix& m);
 	void render() override;
 	const char* getName() const override { return RAINBOWCHASE_ANIMATION_NAME; }
 };

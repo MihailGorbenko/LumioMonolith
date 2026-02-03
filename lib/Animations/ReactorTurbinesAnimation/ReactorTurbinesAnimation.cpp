@@ -3,18 +3,17 @@
 #include <math.h>
 #include <FastLED.h>
 
-ReactorTurbinesAnimation::ReactorTurbinesAnimation(uint16_t id, LedMatrix* m)
+ReactorTurbinesAnimation::ReactorTurbinesAnimation(uint16_t id, LedMatrix& m)
     : AnimationBase(REACTOR_DEFAULT_HUE, id, m) {}
 
 void ReactorTurbinesAnimation::render() {
-    LedMatrix* m = matrix;
-    if (!m) return;
+    LedMatrix& m = matrix;
 
-    const int w = m->getWidth();
-    const int h = m->getHeight();
+    const int w = m.getWidth();
+    const int h = m.getHeight();
     if (w <= 0 || h <= 0) return;
 
-    m->clear();
+    m.clear();
 
     const uint32_t now = millis();
     const float t = now / (float)REACTOR_SPEED_MS;
@@ -49,12 +48,12 @@ void ReactorTurbinesAnimation::render() {
             int x = posLeft - i;
             while (x < 0) x += w;
             x %= w;
-            m->setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vDim);
+            m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vDim);
         }
         // Draw bright (right-moving) turbine
         for (int i = 0; i < segLen; ++i) {
             int x = (posRight + i) % w;
-            m->setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vBright);
+            m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vBright);
         }
     }
 

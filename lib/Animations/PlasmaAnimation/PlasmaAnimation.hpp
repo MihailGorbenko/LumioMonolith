@@ -22,7 +22,7 @@
 
 class PlasmaAnimation : public AnimationBase {
 public:
-	explicit PlasmaAnimation(uint16_t id, LedMatrix* m);
+	explicit PlasmaAnimation(uint16_t id, LedMatrix& m);
 	void render() override;
 	const char* getName() const override { return PLASMA_ANIMATION_NAME; }
 };

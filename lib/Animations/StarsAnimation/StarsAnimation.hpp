@@ -29,7 +29,7 @@
 class StarsAnimation : public AnimationBase {
 public:
 	// default hue comes from defines; id and matrix are provided by main
-	explicit StarsAnimation(uint16_t id, LedMatrix* m);
+	explicit StarsAnimation(uint16_t id, LedMatrix& m);
 
 	// render one frame
 	void render() override;

@@ -24,7 +24,7 @@
 
 class EqualizerBarsAnimation : public AnimationBase {
 public:
-    explicit EqualizerBarsAnimation(uint16_t id, LedMatrix* m);
+    explicit EqualizerBarsAnimation(uint16_t id, LedMatrix& m);
     // configuration setters removed as unused
     void render() override;
      const char* getName() const override { return EQUALIZERBARS_ANIMATION_NAME; }

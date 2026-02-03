@@ -1,22 +1,17 @@
 ﻿#include "PowerOnAnimation.hpp"
 
 PowerOnAnimation::PowerOnAnimation(LedMatrix& m)
-    : matrix(&m),
-      hue(POWERON_DEFAULT_HUE),
-      sat(POWERON_DEFAULT_SAT),
-      val(POWERON_DEFAULT_VAL),
-      progress(0) {}
+    : OverlayAnimation(m, POWERON_DEFAULT_HUE, POWERON_DEFAULT_SAT, POWERON_DEFAULT_VAL) {}
 
 void PowerOnAnimation::setProgress(uint8_t p) { progress = p; }
 
 
 
 void PowerOnAnimation::render() {
-    if (!matrix) return;
-    matrix->clear();
+    matrix.clear();
 
-    int w = matrix->getWidth();
-    int h = matrix->getHeight();
+    int w = matrix.getWidth();
+    int h = matrix.getHeight();
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
 
@@ -41,7 +36,7 @@ void PowerOnAnimation::render() {
 
         if (rowV == 0) continue;
         for (int x = 0; x < w; ++x) {
-            matrix->setPixelHSV(x, y, hue, sat, rowV);
+            matrix.setPixelHSV(x, y, hue, sat, rowV);
         }
     }
 

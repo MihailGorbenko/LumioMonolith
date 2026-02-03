@@ -7,7 +7,7 @@ class AnimMngrCfg : public ISerializable {
 public:
     uint16_t lastAnimId; // stable animation ID
 
-    AnimMngrCfg() : lastAnimId(0) {}
+    AnimMngrCfg() : lastAnimId(1) {}
 
     // ISerializable
     size_t serializedSize() const override { return sizeof(uint16_t); }

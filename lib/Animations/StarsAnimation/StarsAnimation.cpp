@@ -2,7 +2,7 @@
 #include "../../LedMatrix/LedMatrix.hpp"
 #include <FastLED.h>
 
-StarsAnimation::StarsAnimation(uint16_t id, LedMatrix* m)
+StarsAnimation::StarsAnimation(uint16_t id, LedMatrix& m)
 	: AnimationBase(STARS_DEFAULT_HUE, id, m) {
     // defer allocation to first render when matrix size is known
     starCount = 0;
@@ -31,15 +31,14 @@ void StarsAnimation::randomizeStar(Star& s, int w, int h) {
 }
 
 void StarsAnimation::render() {
-	LedMatrix* m = matrix;
-	if (!m) return;
+	LedMatrix& m = matrix;
 	uint32_t now = millis();
 	// clear matrix before drawing (controller sets render cadence)
-	m->clear();
+	m.clear();
 
 	// dimensions for wrapping and fixed-point math
-	int w = m->getWidth();
-	int h = m->getHeight();
+	int w = m.getWidth();
+	int h = m.getHeight();
 	if (w <= 0) w = 8;
 	if (h <= 0) h = 8;
 	int w8 = w << 8;
@@ -131,7 +130,7 @@ void StarsAnimation::render() {
 		if (drawV < 12) continue; // отсечём совсем слабые
 		// slight hue shift by depth for parallax color
 		uint8_t starHue = (uint8_t)(animCfg.hue + (s.depth == 2 ? 0 : (s.depth == 1 ? 4 : 8)));
-	m->setPixelHSV(s.x, s.y, starHue, ANIMATION_DEFAULT_SAT, drawV);
+	m.setPixelHSV(s.x, s.y, starHue, ANIMATION_DEFAULT_SAT, drawV);
 	}
 
 	lastMillis = now;

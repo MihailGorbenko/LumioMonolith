@@ -22,11 +22,11 @@ protected:
 	uint16_t animId;
 	bool configDirty;
 	bool initialized;
-	LedMatrix* matrix;
+	LedMatrix& matrix;
 
 public:
 	// Constructor: default hue and animation ID (matrix passed to render)
-	explicit AnimationBase(uint8_t defH = 0, uint16_t id = 0, LedMatrix* m = nullptr);
+	explicit AnimationBase(uint8_t defH, uint16_t id, LedMatrix& m);
 
 	// Set hue (0..255). Non-virtual for frequent calls.
 	// Marks config dirty when changed.
