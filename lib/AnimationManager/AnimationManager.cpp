@@ -1,6 +1,5 @@
 ﻿#include "AnimationManager.hpp"
 #include "../StorageManager/StorageManager.hpp"
-#include <cstring>
 
 void AnimationManager::addAnimation(AnimationBase* a) {
     if (!a) return;
@@ -10,45 +9,47 @@ void AnimationManager::addAnimation(AnimationBase* a) {
 
 void AnimationManager::init() {
     // attempt to load persisted manager config
-    // try to load stored manager config
     bool ok = storage.loadAnimMngrCfg(animCfg);
-        LOGF("AnimMngr", "init loadAnimMngrCfg ok=%d lastAnimId=%u\n", (int)ok, (unsigned)animCfg.lastAnimId);
-        // find loaded id in animations list; fallback to first animation when missing/failure
-        int chosen = 0;
-        if (ok && animCfg.lastAnimId != 0) {
-            for (size_t i = 0; i < animations.size(); ++i) {
-                if (animations[i] && animations[i]->getId() == animCfg.lastAnimId) { chosen = (int)i; break; }
-            }
-        } else {
-            // default to first available animation
-            if (!animations.empty()) {
-                animCfg.lastAnimId = animations[0]->getId();
-            } else {
-                animCfg.lastAnimId = 0;
-            }
-        }
-        // set current index to chosen
-        if (!animations.empty()) currentIndex = chosen;
+    LOGF("AnimMngr", "init loadAnimMngrCfg ok=%d lastAnimId=%u\n", (int)ok, (unsigned)animCfg.lastAnimId);
 
-        // activate current animation
-        if (!animations.empty()) {
-            AnimationBase* cur = animations[currentIndex];
-            if (cur && !cur->isInitialized()) {
-                // load its saved config if available
-                storage.loadAnimation(*cur);
-                LOGF("AnimMngr", "init loaded anim id=%u initialized=%d\n", (unsigned)cur->getId(), (int)cur->isInitialized());
-                cur->onActivate();
-            } else if (cur) {
-                LOGF("AnimMngr", "init activating anim id=%u alreadyInitialized=%d\n", (unsigned)cur->getId(), (int)cur->isInitialized());
-                cur->onActivate();
-            }
-            // preload and activate neighbors
-            loadNeighbors();
-        }
-        // record timestamps
-        lastSwitchMs = millis();
-        lastHueChangeMs = millis();
+    // find desired id in animations list; fallback to first animation when missing/failure
+    int chosen = 0;
+    uint16_t desiredId = 1; // default id when no stored value
+    if (ok && animCfg.lastAnimId != 0) desiredId = animCfg.lastAnimId;
+    bool found = false;
+    for (size_t i = 0; i < animations.size(); ++i) {
+        if (animations[i] && animations[i]->getId() == desiredId) { chosen = (int)i; found = true; break; }
     }
+    if (found) {
+        animCfg.lastAnimId = desiredId;
+    } else {
+        if (!animations.empty()) {
+            chosen = 0;
+            animCfg.lastAnimId = animations[0]->getId();
+        } else {
+            animCfg.lastAnimId = 0;
+        }
+    }
+
+    // set current index to chosen
+    if (!animations.empty()) currentIndex = chosen;
+
+    // activate current animation
+    if (!animations.empty()) {
+        AnimationBase* cur = animations[currentIndex];
+        if (cur && !cur->isInitialized()) {
+            // load its saved config if available
+            storage.loadAnimation(*cur);
+            LOGF("AnimMngr", "init loaded anim id=%u initialized=%d\n", (unsigned)cur->getId(), (int)cur->isInitialized());
+            cur->onActivate();
+        } else if (cur) {
+            LOGF("AnimMngr", "init activating anim id=%u alreadyInitialized=%d\n", (unsigned)cur->getId(), (int)cur->isInitialized());
+            cur->onActivate();
+        }
+        // preload and activate neighbors
+        loadNeighbors();
+    }
+}
 
 void AnimationManager::switchToNext() {
     if (animations.empty()) return;
@@ -69,7 +70,7 @@ void AnimationManager::switchToNext() {
     animCfg.lastAnimId = (animations[currentIndex] ? animations[currentIndex]->getId() : 0);
     setConfigDirty();
     loadNeighbors();
-    lastSwitchMs = millis();
+    // record dirty-timer for manager config change (handled in setConfigDirty)
 }
 
 void AnimationManager::switchToPrevious() {
@@ -90,7 +91,7 @@ void AnimationManager::switchToPrevious() {
     animCfg.lastAnimId = (animations[currentIndex] ? animations[currentIndex]->getId() : 0);
     setConfigDirty();
     loadNeighbors();
-    lastSwitchMs = millis();
+    // record dirty-timer for manager config change (handled in setConfigDirty)
 }
 
 bool AnimationManager::setAnimation(uint16_t id) {
@@ -110,7 +111,7 @@ bool AnimationManager::setAnimation(uint16_t id) {
             animCfg.lastAnimId = id;
             setConfigDirty();
             loadNeighbors();
-            lastSwitchMs = millis();
+            // record dirty-timer for manager config change (handled in setConfigDirty)
             return true;
         }
     }
@@ -139,37 +140,34 @@ void AnimationManager::render() {
 void AnimationManager::update() {
     // lightweight autosave checks (non-blocking)
     unsigned long now = millis();
-    const unsigned long AUTOSAVE_MS = 60000UL;
-    if (configDirty && (now - lastSwitchMs) >= AUTOSAVE_MS) {
-        LOGF("AnimMngr", "autosave: manager config dirty, forcing save\n");
-        forceSave();
-        lastSwitchMs = now;
-    }
-    if ((now - lastHueChangeMs) >= AUTOSAVE_MS) {
-            // save all dirty animation configs if any
-            bool anyDirty = false;
-            for (auto a : animations) { if (a && a->isConfigDirty()) { anyDirty = true; break; } }
-            if (anyDirty) {
-                // save each dirty animation
-                for (auto a : animations) {
-                    if (a && a->isConfigDirty()) {
-                        bool ok = storage.saveAnimation(*a);
-                        LOGF("AnimMngr", "autosave anim id=%u ok=%d\n", (unsigned)a->getId(), (int)ok);
-                        if (ok) a->clearConfigDirty();
-                    }
-                }
-                lastHueChangeMs = now;
+    // If either manager config or any animation config is dirty and the dirty timer expired, force save
+    if ((configDirty || anyAnimDirty) && lastDirtyMs != 0 && (now - lastDirtyMs) >= ANIM_MNGR_AUTOSAVE_MS) {
+        LOGF("AnimMngr", "autosave: dirty flags set, forcing save\n");
+        bool ok = forceSave();
+        // If save succeeded, clear dirty timer and attempts. If it failed, schedule retry.
+        if (ok) {
+            lastDirtyMs = 0;
+            dirtySaveAttempts = 0;
+        } else {
+            // increment attempts and either schedule next retry or give up
+            dirtySaveAttempts++;
+            if (dirtySaveAttempts >= ANIM_MNGR_AUTOSAVE_RETRIES) {
+                LOGF("AnimMngr", "autosave: giving up after %d attempts\n", dirtySaveAttempts);
+                // stop auto-retries until a new change occurs
+                lastDirtyMs = 0;
+                dirtySaveAttempts = 0;
+            } else {
+                // reset timer to now so next attempt happens after full timeout
+                lastDirtyMs = now;
             }
         }
     }
 }
 
-bool AnimationManager::isConfigDirty() const {
-    return configDirty;
-}
-
 void AnimationManager::setConfigDirty() {
     configDirty = true;
+    lastDirtyMs = millis();
+    dirtySaveAttempts = 0;
 }
 
 void AnimationManager::clearConfigDirty() {
@@ -178,21 +176,28 @@ void AnimationManager::clearConfigDirty() {
 
 bool AnimationManager::forceSave() {
     bool okAll = true;
+    // Save manager config if dirty
     if (configDirty) {
         bool ok = storage.saveAnimMngrCfg(animCfg);
+        LOGF("AnimMngr", "forceSave manager ok=%d lastAnimId=%u\n", (int)ok, (unsigned)animCfg.lastAnimId);
         if (ok) clearConfigDirty();
         okAll = okAll && ok;
-        LOGF("AnimMngr", "forceSave manager ok=%d lastAnimId=%u\n", (int)ok, (unsigned)animCfg.lastAnimId);
     }
-    // Save dirty animation configs
-    for (auto a : animations) {
-        if (a && a->isConfigDirty()) {
-            bool ok = storage.saveAnimation(*a);
-            LOGF("AnimMngr", "forceSave anim id=%u ok=%d\n", (unsigned)a->getId(), (int)ok);
-            if (ok) a->clearConfigDirty();
-            okAll = okAll && ok;
+    // Save dirty animations if flagged
+    if (anyAnimDirty) {
+        bool anyFailed = false;
+        for (auto a : animations) {
+            if (a && a->isConfigDirty()) {
+                bool ok = storage.saveAnimation(*a);
+                LOGF("AnimMngr", "forceSave anim id=%u ok=%d\n", (unsigned)a->getId(), (int)ok);
+                if (ok) a->clearConfigDirty();
+                else anyFailed = true;
+                okAll = okAll && ok;
+            }
         }
+        if (!anyFailed) anyAnimDirty = false;
     }
+    if (!okAll) LOGF("AnimMngr", "forceSave: some saves failed (okAll=%d)\n", (int)okAll);
     return okAll;
 }
 
@@ -230,12 +235,18 @@ bool AnimationManager::setCurrentHue(uint8_t hue) {
     cur->setHue(hue);
     // mark animation config dirty and record last hue change timestamp
     cur->setConfigDirty();
-    lastHueChangeMs = millis();
+    anyAnimDirty = true;
+    lastDirtyMs = millis();
+    dirtySaveAttempts = 0;
     // Per requirements, do not save immediately here — saving happens on timer or via forceSave()
     return true;
 }
 
-// getCurrentHue removed
+uint8_t AnimationManager::getCurrentHue() const {
+    if (animations.empty() || currentIndex < 0 || currentIndex >= (int)animations.size()) return 0;
+    AnimationBase* cur = animations[currentIndex];
+    return cur ? cur->getConfig().hue : 0;
+}
 
 uint16_t AnimationManager::getCurrentId() const {
     if (animations.empty() || currentIndex < 0 || currentIndex >= (int)animations.size()) return 0;

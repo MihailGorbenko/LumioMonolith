@@ -300,19 +300,11 @@ void AppManager::onEnter(State s) {
             if (animMgr) animMgr->unsetOverlay();
             // Configure encoder for hue ticks (0..APP_COLOR_TICKS, no wrap) with acceleration.
             if (encoder) {
-                // derive ticks from current animation hue by reading stored anim config
+                // derive ticks from current animation hue via AnimationManager
                 int curTicks = 0;
-                if (animMgr && storage) {
-                    uint16_t aid = animMgr->getCurrentId();
-                    if (aid != 0) {
-                        char keyBuf[16];
-                        snprintf(keyBuf, sizeof(keyBuf), "a%u", (unsigned)aid);
-                        // Read animation config into temporary
-                        AnimConfig temp;
-                        if (storage->loadSerializable("anim", keyBuf, temp)) {
-                            curTicks = hueToTicks(temp.hue);
-                        }
-                    }
+                if (animMgr) {
+                    uint8_t curHue = animMgr->getCurrentHue();
+                    curTicks = hueToTicks(curHue);
                 }
                 colorTicks = curTicks;
                 encoder->setBoundaries(0, APP_COLOR_TICKS, false);

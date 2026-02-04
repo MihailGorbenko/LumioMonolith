@@ -5,6 +5,16 @@
 #include "AnimMngrCfg.hpp"
 #include "../StorageManager/StorageManager.hpp"
 
+// Autosave timeout for AnimationManager (milliseconds)
+#ifndef ANIM_MNGR_AUTOSAVE_MS
+#define ANIM_MNGR_AUTOSAVE_MS 60000UL
+#endif
+
+// Number of autosave retry attempts before giving up
+#ifndef ANIM_MNGR_AUTOSAVE_RETRIES
+#define ANIM_MNGR_AUTOSAVE_RETRIES 3
+#endif
+
 class AnimationManager {
 public:
     explicit AnimationManager(StorageManager& s) : storage(s) {}
@@ -39,6 +49,8 @@ public:
     // Set hue for the currently active animation (0..255)
     bool setCurrentHue(uint8_t hue);
 
+    // Get hue for the currently active animation (0..255)
+    uint8_t getCurrentHue() const;
     // Get current animation id (0 if none)
     uint16_t getCurrentId() const;
 
@@ -53,12 +65,12 @@ private:
     std::vector<AnimationBase*> animations;
     int currentIndex{0};
     OverlayAnimation* overlay{nullptr};
-    // Timing for autosave logic
-    unsigned long lastSwitchMs{0};
-    unsigned long lastHueChangeMs{0};
+    // Timing / dirty tracking for autosave logic
+    unsigned long lastDirtyMs{0};
+    bool anyAnimDirty{false};
+    int dirtySaveAttempts{0};
 
     // Helpers for tracking manager config dirty state
-    bool isConfigDirty() const;
     void setConfigDirty();
     void clearConfigDirty();
     // Load configs for current animation and neighbors
