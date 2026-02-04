@@ -24,6 +24,7 @@
 class MatrixCodeRainAnimation : public AnimationBase {
 public:
     explicit MatrixCodeRainAnimation(uint16_t id, LedMatrix& m);
+    void onActivate() override;
     void render() override;
     const char* getName() const override { return MATRIXCODERAIN_ANIMATION_NAME; }
 private:

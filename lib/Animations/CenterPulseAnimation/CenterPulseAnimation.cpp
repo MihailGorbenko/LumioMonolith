@@ -7,20 +7,37 @@ CenterPulseAnimation::CenterPulseAnimation(uint16_t id, LedMatrix& m)
             speedDiv(6) {}
 
 
-void CenterPulseAnimation::render() {
+void CenterPulseAnimation::onActivate() {
     LedMatrix& m = matrix;
     int w = m.getWidth();
     int h = m.getHeight();
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
+    const int MAX_DIM = 256;
+    if (w > MAX_DIM) w = MAX_DIM;
+    if (h > MAX_DIM) h = MAX_DIM;
 
-    // Center row index (works for odd/even heights)
-    int center = (h - 1) / 2;
-    // Max radius to edges from center (supports odd/even heights)
-    int maxR = max(center, (h - 1) - center);
+    cachedWidth = w;
+    cachedHeight = h;
+    centerIndex = (h - 1) / 2;
+    maxR = max(centerIndex, (h - 1) - centerIndex);
     if (maxR < 0) maxR = 0;
 
-    // Compute expanding radius 0..maxR..0 using sin wave
+    rowDist.assign(h, 0);
+    for (int y = 0; y < h; ++y) rowDist[y] = abs(y - centerIndex);
+
+    AnimationBase::onActivate();
+}
+
+void CenterPulseAnimation::render() {
+    if (!isInitialized()) return;
+    LedMatrix& m = matrix;
+
+    const int w = cachedWidth;
+    const int h = cachedHeight;
+    if (w <= 0 || h <= 0) return;
+
+    // Compute expanding radius 0..maxR using sin wave
     uint8_t phase = (uint8_t)(millis() / speedDiv);
     uint8_t s = sin8(phase); // 0..255
     uint16_t sr = (uint16_t)s * (uint16_t)maxR; // 0..maxR*255
@@ -29,12 +46,11 @@ void CenterPulseAnimation::render() {
 
     m.clear();
     for (int y = 0; y < h; ++y) {
-        int d = abs(y - center);
+        int d = rowDist[y];
         uint8_t vRow = 0;
         if (d <= radius) {
-            vRow = ANIMATION_DEFAULT_VAL; // fully lit inside and on current radius
+            vRow = ANIMATION_DEFAULT_VAL;
         } else if (d == (radius + 1)) {
-            // frontier row beyond current radius: blend in progressively
             vRow = scale8(ANIMATION_DEFAULT_VAL, frac);
         } else {
             continue;

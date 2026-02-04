@@ -117,7 +117,6 @@ private:
     // used with wrap-safe subtraction (now - prev) to compute intervals.
     bool btnDown;
     unsigned long btnStartMs;
-    unsigned long lastActivityMs;
     unsigned long lastEncoderActivityMs;
     unsigned long lastBtnReleaseMs;
     unsigned long lastBtnPressMs;

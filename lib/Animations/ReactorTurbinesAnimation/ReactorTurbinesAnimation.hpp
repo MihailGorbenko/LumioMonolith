@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "../../Animation/Animation.hpp"
 #include "../../StorageManager/Serializable.hpp"
+#include <vector>
 
 #ifndef REACTOR_DEFAULT_HUE
 #define REACTOR_DEFAULT_HUE 160
@@ -38,8 +39,18 @@ class ReactorTurbinesAnimation : public AnimationBase {
 public:
     explicit ReactorTurbinesAnimation(uint16_t id, LedMatrix& m);
     void render() override;
+    void onActivate() override;
 
     const char* getName() const override { return REACTORTURBINES_ANIMATION_NAME; }
+
+private:
+    int cachedWidth;
+    int cachedHeight;
+    std::vector<int> segLen;        // per-row segment length
+    std::vector<int> phase;         // per-row base phase
+    std::vector<float> speedFactor; // per-row speed multiplier
+    uint8_t vBright;
+    uint8_t vDim;
 };
 
 #endif // REACTOR_TURBINES_ANIMATION_HPP

@@ -4,16 +4,27 @@
 
 SparkleWaveAnimation::SparkleWaveAnimation(uint16_t id, LedMatrix& m)
 		: AnimationBase(SPARKLEWAVE_DEFAULT_HUE, id, m),
-			sparkleChance(0) {}
+			sparkleChance(0), cachedWidth(0), cachedHeight(0) {}
+
+void SparkleWaveAnimation::onActivate() {
+	// Cache matrix dimensions to avoid calling getWidth/getHeight each frame.
+	LedMatrix& m = matrix;
+	int w = m.getWidth();
+	int h = m.getHeight();
+	if (w <= 0) w = 1;
+	if (h <= 0) h = 1;
+	cachedWidth = w;
+	cachedHeight = h;
+	AnimationBase::onActivate();
+}
 
 void SparkleWaveAnimation::render() {
 	LedMatrix& m = matrix;
 	m.clear();
 
-	int w = m.getWidth();
-	int hgt = m.getHeight();
-	if (w <= 0) w = 1;
-	if (hgt <= 0) hgt = 1;
+	// Use cached dimensions populated in onActivate(); assume prepared.
+	int w = cachedWidth;
+	int hgt = cachedHeight;
 
 	uint32_t now = millis();
 	uint32_t t32 = now / 5U;

@@ -2,6 +2,7 @@
 #define CENTER_PULSE_ANIMATION_HPP
 
 #include <Arduino.h>
+#include <vector>
 #include "../../Animation/Animation.hpp"
 #include "../../StorageManager/Serializable.hpp"
 
@@ -23,11 +24,18 @@
 class CenterPulseAnimation : public AnimationBase {
 public:
     explicit CenterPulseAnimation(uint16_t id, LedMatrix& m);
+    void onActivate() override;
 
     void render() override;
 
 private:
     uint8_t speedDiv; // time divider for sin phase
+    // Cached values populated in onActivate()
+    int cachedWidth = 0;
+    int cachedHeight = 0;
+    int centerIndex = 0;
+    int maxR = 0;
+    std::vector<int> rowDist; // abs distance per row from center
 
     const char* getName() const override { return CENTERPULSE_ANIMATION_NAME; }
 };

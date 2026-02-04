@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "../../Animation/Animation.hpp"
 #include "../../StorageManager/Serializable.hpp"
+#include <vector>
 
 #ifndef PLASMA_DEFAULT_HUE
 #define PLASMA_DEFAULT_HUE 160
@@ -23,8 +24,14 @@
 class PlasmaAnimation : public AnimationBase {
 public:
 	explicit PlasmaAnimation(uint16_t id, LedMatrix& m);
+	void onActivate() override;
 	void render() override;
 	const char* getName() const override { return PLASMA_ANIMATION_NAME; }
+private:
+	int cachedWidth;
+	int cachedHeight;
+	std::vector<uint8_t> colBase; // precomputed x*8 values
+	std::vector<uint8_t> rowBase; // precomputed y*48 values
 };
 
 #endif // PLASMA_ANIMATION_HPP

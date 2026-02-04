@@ -30,7 +30,6 @@ AppManager::AppManager(AnimationManager& am, RotaryEncoder& enc, LedMatrix& m, S
             prevState(State::Off),
             btnDown(false),
             btnStartMs(0),
-            lastActivityMs(0),
             lastEncoderActivityMs(0),
             lastBtnReleaseMs(0),
             lastBtnPressMs(0),
@@ -101,9 +100,8 @@ void AppManager::begin() {
     } else {
         setState(State::Off);
     }
-    lastActivityMs = millis();
     // Initialize encoder activity timestamp to now to avoid treating startup as idle
-    lastEncoderActivityMs = lastActivityMs;
+    lastEncoderActivityMs = millis();
 }
 
 void AppManager::update() {
@@ -353,7 +351,7 @@ void AppManager::onExit(State s) {
             break;
         case State::Color: {
             // AnimationManager is responsible for saving animation configs; no-op here.
-            // Восстановить границы энкодера на значения по умолчанию с кольцом.
+            // Restore encoder boundaries to default with wrap.
             if (encoder) {
                 encoder->setBoundaries(ENC_MIN, ENC_MAX, true);
             }
@@ -393,7 +391,7 @@ void AppManager::handleIdle(unsigned long now) {
 }
 
 void AppManager::updateOverlays(unsigned long now) {
-    // Плейаут оверлея выключения после входа в Shutdown: дожигаем до конца.
+    // Shutdown overlay playout after entering Shutdown: finish remaining fade.
     if (state == State::Shutdown) {
         if (overlayOffActive) {
             unsigned long dt = now - shutdownBeginMs;
@@ -409,13 +407,13 @@ void AppManager::updateOverlays(unsigned long now) {
         return;
     }
 
-    // Прогресс оверлея запуска и последовательность действий.
+    // Startup overlay progress and sequence.
     if (state == State::Startup) {
-        // Плавное накопление прогресса с ограничением шага за кадр, без мгновенного перехода на 255.
+        // Accumulate progress smoothly with a per-frame step cap to avoid instant jump to 255.
         unsigned long dtFrame = now - lastOverlayOnMs;
         lastOverlayOnMs = now;
         unsigned long inc = (APP_STARTUP_OVERLAY_MS > 0) ? ((dtFrame * 255UL) / (unsigned long)APP_STARTUP_OVERLAY_MS) : 1UL;
-        if (inc == 0UL) inc = 1UL; // гарантировать поступательное увеличение
+        if (inc == 0UL) inc = 1UL; // ensure incremental increase
         if (inc > (unsigned long)APP_STARTUP_MAX_STEP) inc = (unsigned long)APP_STARTUP_MAX_STEP;
         unsigned int next = (unsigned int)overlayOnProg + (unsigned int)inc;
         if (next > 255U) next = 255U;
@@ -423,14 +421,14 @@ void AppManager::updateOverlays(unsigned long now) {
         powerOnAnim.setProgress(overlayOnProg);
         overlayOnActive = true;
 
-        // Когда достигли полного прогресса, держим оверлей и выполняем пост-задержку.
+        // When full progress is reached, hold the overlay and perform the post-delay.
             if (overlayOnProg >= 255U) {
                 if (!startupLoadedAnim) {
                     // Let AnimationManager handle its own last-animation restore
                     startupLoadedAnim = true;
                     startupLoadedMs = now;
                 }
-            // По истечении задержки — снять оверлей и перейти в Brightness.
+            // After the post-delay expires, remove overlay and transition to Brightness.
             if (startupLoadedAnim && (now - startupLoadedMs) >= APP_STARTUP_RENDER_DELAY_MS) {
                 overlayOnActive = false;
                 requestState(State::Brightness, StateReqSource::Overlay);
@@ -438,7 +436,7 @@ void AppManager::updateOverlays(unsigned long now) {
         }
     }
 
-    // Оверлей выключения во время удержания кнопки: показываем, но не переходим в Shutdown до отпускания.
+    // Power-off overlay during button hold: show it, but do not enter Shutdown until release.
     if (btnDown && state != State::Off && state != State::Shutdown) {
         unsigned long held = now - btnStartMs;
         if (held >= APP_POWEROFF_OVERLAY_START_MS) {
@@ -460,21 +458,21 @@ void AppManager::updateOverlays(unsigned long now) {
 void AppManager::renderFrame() {
     if (!matrix) return;
 
-    // Выбор и установка оверлея.
+    // Select and apply the overlay.
     if (animMgr) {
         if (overlayOnActive) animMgr->setOverlay(&powerOnAnim);
         else if (overlayOffActive) animMgr->setOverlay(&powerOffAnim);
         else animMgr->unsetOverlay();
     }
 
-    // Рендер в зависимости от состояния.
+    // Render according to current state.
     bool didRender = false;
     switch (state) {
         case State::Off:
-            // Нет рендера и обновления в состоянии Off.
+            // No rendering or updates in Off state.
             break;
         case State::Shutdown:
-            // В состоянии Shutdown продолжаем рендерить оверлей выключения.
+            // In Shutdown state, continue rendering the power-off overlay.
             if (overlayOffActive && animMgr) { animMgr->render(); didRender = true; }
             break;
         case State::Startup:
@@ -487,29 +485,28 @@ void AppManager::renderFrame() {
             break;
     }
 
-    // Вывод кадра только если был рендер.
+    // Update matrix only if a frame was rendered.
     if (didRender) matrix->update();
 }
 
 void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
     unsigned long now = millis();
-    lastActivityMs = now;
     // record encoder activity timestamp for idle detection (rotations/presses)
     lastEncoderActivityMs = now;
 
     // encoder events logging removed to reduce serial noise
 
     if (ev == RotaryEncoder::PRESS_START) {
-        // Защита от дребезга: игнорировать повторные PRESS_START в течение APP_BUTTON_GUARD_MS
+        // Debounce: ignore repeated PRESS_START within APP_BUTTON_GUARD_MS
         if ((now - lastBtnPressMs) < APP_BUTTON_GUARD_MS) {
             return;
         }
-        // Также игнорировать PRESS_START, если только что был RELEASE (ложные повторные клики).
+            // Also ignore PRESS_START if a RELEASE occurred recently (spurious repeats).
         if ((now - lastBtnReleaseMs) < APP_BUTTON_GUARD_MS) {
             return;
         }
             if (!btnDown) {
-                // New click token for this physical press
+                    // New click token for this physical press
                 ++clickSeq;
                 // allow FSM processing for this new click unless explicitly locked later
                 fsmLocked = false;
@@ -517,8 +514,8 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
             btnDown = true;
             btnStartMs = now;
             lastBtnPressMs = now;
-            // New click token was issued above; clear any pending state transition.
-            // Cancel any pending state transition from a предыдущий click
+                // New click token was issued above; clear any pending state transition.
+                // Cancel any pending state transition from a previous click
             pendingState = State::None;
             return;
     }
@@ -529,23 +526,23 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
             return;
         }
 
-        // Обрабатывать release только если был активный press.
+        // Process release only if there was an active press.
         if (!btnDown) {
             return;
         }
         unsigned long held = now - btnStartMs;
 
-        // Защита от дребезга: игнорировать повторные RELEASE в течение APP_BUTTON_GUARD_MS.
+        // Debounce: ignore repeated RELEASE within APP_BUTTON_GUARD_MS.
         if ((now - lastBtnReleaseMs) < APP_BUTTON_GUARD_MS) {
             return;
         }
         lastBtnReleaseMs = now;
         btnDown = false;
 
-        // Сохраняем логическое состояние на момент клика, чтобы не зависеть от отложенных переходов
+        // Save logical state at the time of click to avoid depending on deferred transitions
         State logicalState = state;
 
-        // Длинное удержание: подтверждаем переход в Shutdown только при отпускании.
+        // Long hold: confirm the Shutdown transition only on release.
         if (held >= APP_POWEROFF_HOLD_THRESHOLD_MS) {
             if (!fsmLocked) {
                 requestState(State::Shutdown);
@@ -557,7 +554,7 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
             return;
         }
 
-        // Из Off: короткое нажатие — переход в Startup.
+        // From Off: short press -> Startup.
             if (logicalState == State::Off) {
             if (held < APP_POWEROFF_OVERLAY_START_MS) {
                 if (!fsmLocked) {
@@ -570,16 +567,16 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
             return;
         }
 
-        // Отпускание до порога выключения: не выполняем переход, только снимаем оверлей.
+        // Release before shutdown threshold: do not transition, only remove overlay.
         if (held >= APP_POWEROFF_OVERLAY_START_MS && held < APP_POWEROFF_HOLD_THRESHOLD_MS) {
-            // Оверлей выключения будет снят в updateOverlays.
+            // Power-off overlay will be cleared in updateOverlays.
             return;
         }
 
-        // Длинное удержание обработано в updateOverlays (переход в Shutdown).
+        // Long hold is handled in updateOverlays (transition to Shutdown).
         if (logicalState == State::Shutdown) return;
 
-        // Короткое нажатие по кругу: Animation → Color → Brightness → Animation.
+        // Short press cycles: Animation → Color → Brightness → Animation.
             if (held < APP_POWEROFF_OVERLAY_START_MS) {
             if ((now - lastStateChangeMs) < APP_STATE_CHANGE_GUARD_MS) {
                 return;
@@ -601,7 +598,7 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
 
     // Rotation
     if (ev == RotaryEncoder::INCREMENT || ev == RotaryEncoder::DECREMENT) {
-        // Игнорировать вращение при удержании кнопки.
+        // Ignore rotation while the button is held.
         if (btnDown) return;
 
         // Ignore one-frame rotation bursts immediately after a state change.
@@ -615,7 +612,7 @@ void AppManager::onEvent(RotaryEncoder::Event ev, int value) {
 
         switch (state) {
             case State::Brightness: {
-                // Медленное вращение: 30 «тиков» от минимума до максимума; ускорение умножает дельту.
+                // Slow rotation: 30 ticks from minimum to maximum; acceleration multiplies the delta.
                 int newTicks = brightTicks + delta;
                 if (newTicks < 0) newTicks = 0;
                 if (newTicks > APP_BRIGHTNESS_TICKS) newTicks = APP_BRIGHTNESS_TICKS;
@@ -695,12 +692,12 @@ bool AppManager::loadState() {
         // Default behavior for first boot with empty storage: power on.
         appCfg.powerOn = 1;
     }
-    // Клампинг яркости.
+    // Clamp brightness.
     uint16_t b = appCfg.masterBrightness;
     if (b < APP_BRIGHTNESS_MIN) b = APP_BRIGHTNESS_MIN;
     if (b > APP_BRIGHTNESS_MAX) b = APP_BRIGHTNESS_MAX;
     brightness = (uint8_t)b;
-    // Обновление «тиков» согласно загруженной яркости.
+    // Update ticks according to loaded brightness.
     {
         int range = (int)APP_BRIGHTNESS_MAX - (int)APP_BRIGHTNESS_MIN;
         int bb = (int)brightness - (int)APP_BRIGHTNESS_MIN;

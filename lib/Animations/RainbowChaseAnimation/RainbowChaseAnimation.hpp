@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "../../Animation/Animation.hpp"
 #include "../../StorageManager/Serializable.hpp"
+#include <vector>
 
 // Default configuration (can be overridden at compile time)
 #ifndef RAINBOWCHASE_DEFAULT_HUE
@@ -24,8 +25,15 @@
 class RainbowChaseAnimation : public AnimationBase {
 public:
 	explicit RainbowChaseAnimation(uint16_t id, LedMatrix& m);
+	void onActivate() override;
 	void render() override;
 	const char* getName() const override { return RAINBOWCHASE_ANIMATION_NAME; }
+
+private:
+    int cachedWidth;
+    int cachedHeight;
+    std::vector<uint8_t> colHueOffset;
+    std::vector<uint8_t> rowShift;
 };
 
 #endif // RAINBOW_CHASE_ANIMATION_HPP

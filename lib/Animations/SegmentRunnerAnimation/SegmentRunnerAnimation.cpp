@@ -3,19 +3,20 @@
 
 SegmentRunnerAnimation::SegmentRunnerAnimation(uint16_t id, LedMatrix& m)
     : AnimationBase(SEGMENTRUNNER_DEFAULT_HUE, id, m),
-            stepPeriodMs(130) {}
+            stepPeriodMs(130), cachedWidth(0), cachedHeight(0), cachedSpan(0) {}
 
 
 void SegmentRunnerAnimation::render() {
     LedMatrix& m = matrix;
-    int w = m.getWidth();
-    int h = m.getHeight();
+    // Use cached dimensions populated in onActivate(); fall back defensively.
+    int w = cachedWidth;
+    int h = cachedHeight;
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
 
     // Ping-pong head across rows: top -> bottom -> top
     uint32_t step = millis() / (uint32_t)stepPeriodMs;
-    uint32_t span = (uint32_t)((h > 1) ? (h - 1) : 0);
+    uint32_t span = cachedSpan;
     uint32_t phase = (span > 0) ? (step % (2 * span)) : 0;
     int head = (span == 0) ? 0 : ((phase <= span) ? (int)phase : (int)(2 * span - phase));
 
@@ -24,6 +25,19 @@ void SegmentRunnerAnimation::render() {
         m.setPixelHSV(x, head, animCfg.hue, ANIMATION_DEFAULT_SAT, ANIMATION_DEFAULT_VAL);
     }
 
+}
+
+void SegmentRunnerAnimation::onActivate() {
+    // Cache matrix dimensions and derived span to avoid per-frame queries.
+    LedMatrix& m = matrix;
+    int w = m.getWidth();
+    int h = m.getHeight();
+    if (w <= 0) w = 1;
+    if (h <= 0) h = 1;
+    cachedWidth = w;
+    cachedHeight = h;
+    cachedSpan = (uint32_t)((h > 1) ? (h - 1) : 0);
+    AnimationBase::onActivate();
 }
 
 // Base class provides ISerializable

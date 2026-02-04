@@ -24,10 +24,14 @@ class SegmentRunnerAnimation : public AnimationBase {
 public:
     explicit SegmentRunnerAnimation(uint16_t id, LedMatrix& m);
     void render() override;
+    void onActivate() override;
       const char* getName() const override { return SEGMENTRUNNER_ANIMATION_NAME; }
 
 private:
     uint16_t stepPeriodMs; // time per row change
+    int cachedWidth;
+    int cachedHeight;
+    uint32_t cachedSpan; // precomputed (height > 1 ? height - 1 : 0)
 
 };
 

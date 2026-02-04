@@ -2,6 +2,7 @@
 #define CHARGING_PULSE_ANIMATION_HPP
 
 #include <Arduino.h>
+#include <vector>
 #include "../../Animation/Animation.hpp"
 #include "../../StorageManager/Serializable.hpp"
 
@@ -36,9 +37,19 @@
 class ChargingPulseAnimation : public AnimationBase {
 public:
     explicit ChargingPulseAnimation(uint16_t id, LedMatrix& m);
+    void onActivate() override;
     void render() override;
 
     const char* getName() const override { return CHARGINGPULSE_ANIMATION_NAME; }
+private:
+    // Cached values populated in onActivate()
+    int cachedWidth = 0;
+    int cachedHeight = 0;
+    int cachedAscendMs = 0;
+    int cachedCycleMs = 0;
+    float invRingStep = 0.0f; // 1 / CHARGING_RING_STEP_MS
+    float invAscend = 0.0f;   // 1 / cachedAscendMs
+    std::vector<int> startMs; // start time per row
 };
 
 #endif // CHARGING_PULSE_ANIMATION_HPP

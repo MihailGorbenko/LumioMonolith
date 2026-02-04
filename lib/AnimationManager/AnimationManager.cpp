@@ -38,13 +38,12 @@ void AnimationManager::init() {
     if (!animations.empty()) {
         AnimationBase* cur = animations[currentIndex];
         if (cur && !cur->isInitialized()) {
-            // load its saved config if available
+            // load its saved config if available and activate once
             storage.loadAnimation(*cur);
             LOGF("AnimMngr", "init loaded anim id=%u initialized=%d\n", (unsigned)cur->getId(), (int)cur->isInitialized());
             cur->onActivate();
         } else if (cur) {
-            LOGF("AnimMngr", "init activating anim id=%u alreadyInitialized=%d\n", (unsigned)cur->getId(), (int)cur->isInitialized());
-            cur->onActivate();
+            LOGF("AnimMngr", "init anim id=%u alreadyInitialized=%d (skipping onActivate)\n", (unsigned)cur->getId(), (int)cur->isInitialized());
         }
         // preload and activate neighbors
         loadNeighbors();
@@ -103,8 +102,6 @@ bool AnimationManager::setAnimation(uint16_t id) {
             LOGF("AnimMngr", "setAnimation id=%u idx=%d\n", (unsigned)id, newIdx);
             if (target && !target->isInitialized()) {
                 storage.loadAnimation(*target);
-                target->onActivate();
-            } else if (target) {
                 target->onActivate();
             }
             currentIndex = newIdx;

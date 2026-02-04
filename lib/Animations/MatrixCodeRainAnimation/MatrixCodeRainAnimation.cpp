@@ -8,37 +8,47 @@ MatrixCodeRainAnimation::MatrixCodeRainAnimation(uint16_t id, LedMatrix& m)
     // Defer initialization until render when matrix size is known.
 }
 
-void MatrixCodeRainAnimation::render() {
+void MatrixCodeRainAnimation::onActivate() {
     LedMatrix& m = matrix;
     int w = m.getWidth();
     int h = m.getHeight();
     if (w <= 0) w = 1;
     if (h <= 0) h = 1;
+    const int MAX_DIM = 256;
+    if (w > MAX_DIM) w = MAX_DIM;
+    if (h > MAX_DIM) h = MAX_DIM;
 
-    // Lazy init on first render or when size changes
+    numCols = w;
+    numRows = h;
+    heads.assign(numCols, 0);
+    counter.assign(numCols, 0);
+    speeds.assign(numCols, 0);
+    tailLens.assign(numCols, 2);
+
+    for (int x = 0; x < numCols; ++x) {
+        heads[x] = random8(0, (uint8_t)(numRows > 0 ? numRows : 1));
+        uint8_t t = (uint8_t)random8(2, 4);
+        uint8_t maxTail = (numRows > 2) ? (uint8_t)(numRows - 2) : 1;
+        if (t > maxTail) t = maxTail;
+        tailLens[x] = t;
+        speeds[x] = (uint8_t)random8(3, 7); // 3..6
+        counter[x] = random8(speeds[x]);
+    }
+
+    nextStepMs = millis() + stepPeriodMs;
+    AnimationBase::onActivate();
+}
+
+void MatrixCodeRainAnimation::render() {
+    if (!isInitialized()) return;
+    LedMatrix& m = matrix;
+    int w = m.getWidth();
+    int h = m.getHeight();
+    if (w <= 0) w = 1;
+    if (h <= 0) h = 1;
+    // Reinitialize if size changed while active
     if (numCols != w || numRows != h || heads.size() != (size_t)w) {
-        numCols = w;
-        numRows = h;
-        heads.assign(numCols, 0);
-        counter.assign(numCols, 0);
-        speeds.assign(numCols, 0);
-        // Initialize per-column state and per-column tail lengths
-        tailLens.assign(numCols, 2);
-        for (int x = 0; x < numCols; ++x) {
-            heads[x] = random8(0, (uint8_t)(numRows > 0 ? numRows : 1));
-            // per-column timing will be set below (speeds/counter initialized once)
-            // tail length 2..3 (random8 upper bound exclusive)
-            uint8_t t = (uint8_t)random8(2, 4);
-            // Limit tail length relative to available rows so a tail can't fill the
-            // whole column via wrap. Keep at least 1 for very small matrices.
-            uint8_t maxTail = (numRows > 2) ? (uint8_t)(numRows - 2) : 1;
-            if (t > maxTail) t = maxTail;
-            tailLens[x] = t;
-            // per-column speeds: 3..6 ticks (lower -> faster). Slightly slower overall.
-            speeds[x] = (uint8_t)random8(3, 7); // 3..6
-            // start counter offset so columns are staggered
-            counter[x] = random8(speeds[x]);
-        }
+        onActivate();
     }
 
     uint32_t now = millis();

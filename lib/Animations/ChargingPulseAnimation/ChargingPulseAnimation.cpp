@@ -17,59 +17,76 @@ static inline float easeInOutCubic(float p) {
 ChargingPulseAnimation::ChargingPulseAnimation(uint16_t id, LedMatrix& m)
     : AnimationBase(CHARGING_DEFAULT_HUE, id, m) {}
 
+void ChargingPulseAnimation::onActivate() {
+    LedMatrix& m = matrix;
+    int w = m.getWidth();
+    int h = m.getHeight();
+    if (w <= 0) w = 1;
+    if (h <= 0) h = 1;
+    const int MAX_DIM = 256;
+    if (w > MAX_DIM) w = MAX_DIM;
+    if (h > MAX_DIM) h = MAX_DIM;
+
+    cachedWidth = w;
+    cachedHeight = h;
+    cachedAscendMs = h * CHARGING_RING_STEP_MS;
+    cachedCycleMs = cachedAscendMs + CHARGING_FLASH_MS + CHARGING_FADE_MS;
+    invRingStep = (CHARGING_RING_STEP_MS == 0) ? 0.0f : (1.0f / (float)CHARGING_RING_STEP_MS);
+    invAscend = (cachedAscendMs > 0) ? (1.0f / (float)cachedAscendMs) : 0.0f;
+
+    startMs.assign(h, 0);
+    for (int y = 0; y < h; ++y) {
+        startMs[y] = (h - 1 - y) * CHARGING_RING_STEP_MS;
+    }
+
+    AnimationBase::onActivate();
+}
+
 void ChargingPulseAnimation::render() {
+    if (!isInitialized()) return;
     LedMatrix& m = matrix;
 
-    const int w = m.getWidth();
-    const int h = m.getHeight();
+    const int w = cachedWidth;
+    const int h = cachedHeight;
     if (w <= 0 || h <= 0) return;
 
     const uint32_t now = millis();
+    const int cycleMsSafe = (cachedCycleMs > 0) ? cachedCycleMs : 1;
+    const int t = (int)(now % (uint32_t)cycleMsSafe);
 
-    const int ascendMs = h * CHARGING_RING_STEP_MS;           // bottom -> top ramp total
-    const int cycleMs  = ascendMs + CHARGING_FLASH_MS + CHARGING_FADE_MS;
-    const int t        = (int)(now % (uint32_t)cycleMs);
+    m.clear();
 
-    m->clear();
-
-    // Determine phase
-    const bool inAscend = (t < ascendMs);
-    const bool inFlash  = (!inAscend && t < (ascendMs + CHARGING_FLASH_MS));
+    const bool inAscend = (t < cachedAscendMs);
+    const bool inFlash  = (!inAscend && t < (cachedAscendMs + CHARGING_FLASH_MS));
     const bool inFade   = (!inAscend && !inFlash);
 
-    // Global brightness ramp during ascent for a stronger "charging" feel
     float globalRamp = 1.0f;
     if (inAscend) {
-        globalRamp = easeInOutCubic((float)t / (float)ascendMs); // 0..1
+        globalRamp = easeInOutCubic((float)t * invAscend); // 0..1
     }
 
     uint8_t vTopFlash = ANIMATION_DEFAULT_VAL;
     if (inFlash) {
-        // Top flash: overshoot to 255 using a smooth sin curve
-        int tf = t - ascendMs; // 0..FLASH
+        int tf = t - cachedAscendMs; // 0..FLASH
         uint8_t f256 = (uint8_t)((uint32_t)tf * 255U / (uint32_t)CHARGING_FLASH_MS);
-        uint8_t s = sin8(f256); // 0..255
-        // Interpolate from normal val to 255 with sin easing
+        uint8_t s = sin8(f256);
         uint16_t add = ((uint16_t)(255 - ANIMATION_DEFAULT_VAL) * (uint16_t)s) / 255U;
         vTopFlash = (uint8_t)min(255, (int)ANIMATION_DEFAULT_VAL + (int)add);
     }
 
-    // Compute brightness per ring (row)
     for (int y = 0; y < h; ++y) {
-        // bottom row starts first
-        int startMs = (h - 1 - y) * CHARGING_RING_STEP_MS;
         uint8_t vOut = 0;
 
         if (inAscend) {
-            if (t >= startMs) {
-                float u = (float)(t - startMs) / (float)CHARGING_RING_STEP_MS; // 0..1
+            int sMs = startMs[y];
+            if (t >= sMs) {
+                float u = (float)(t - sMs) * invRingStep; // 0..1
                 if (u < 1.0f) {
                     float e = easeInOutCubic(u);
-                    float v = (float)ANIMATION_DEFAULT_VAL * e * globalRamp; // local + global ramp
+                    float v = (float)ANIMATION_DEFAULT_VAL * e * globalRamp;
                     if (v > 255.0f) v = 255.0f;
                     vOut = (uint8_t)v;
                 } else {
-                    // fully lit, still scaled by global ramp to keep growing brightness
                     float v = (float)ANIMATION_DEFAULT_VAL * globalRamp;
                     if (v > 255.0f) v = 255.0f;
                     vOut = (uint8_t)v;
@@ -78,21 +95,16 @@ void ChargingPulseAnimation::render() {
                 vOut = 0;
             }
         } else if (inFlash) {
-            // During flash, keep all rings at full brightness; top flashes stronger
             vOut = ANIMATION_DEFAULT_VAL;
-            if (y == 0) {
-                vOut = vTopFlash;
-            }
+            if (y == 0) vOut = vTopFlash;
         } else if (inFade) {
-            // Fade all rings to off with easing
-            int tf = t - (ascendMs + CHARGING_FLASH_MS);
-            float u = (float)tf / (float)CHARGING_FADE_MS; // 0..1
+            int tf = t - (cachedAscendMs + CHARGING_FLASH_MS);
+            float u = (float)tf / (float)CHARGING_FADE_MS;
             float e = easeInOutCubic(u);
             float f = 1.0f - e;
             vOut = (uint8_t)((float)ANIMATION_DEFAULT_VAL * f);
         }
 
-        // Draw entire ring with computed brightness
         if (vOut > 0) {
             for (int x = 0; x < w; ++x) {
                 m.setPixelHSV(x, y, animCfg.hue, ANIMATION_DEFAULT_SAT, vOut);

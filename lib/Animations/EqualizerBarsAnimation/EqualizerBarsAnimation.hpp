@@ -25,6 +25,7 @@
 class EqualizerBarsAnimation : public AnimationBase {
 public:
     explicit EqualizerBarsAnimation(uint16_t id, LedMatrix& m);
+    void onActivate() override;
     // configuration setters removed as unused
     void render() override;
      const char* getName() const override { return EQUALIZERBARS_ANIMATION_NAME; }
@@ -38,6 +39,12 @@ private:
     uint8_t step;                       // base step size
     uint32_t nextStepMs;
     uint16_t stepPeriodMs;
+    // Cached values populated in onActivate()
+    int cachedWidth;
+    int cachedHeight;
+    int rowsRange;
+    std::vector<uint8_t> colGroup; // precomputed group index per column (0..2)
+    std::vector<uint8_t> hueMap;   // precomputed hue per row for special hue mode
     // no updatePhase for hard-digital behavior
 
 

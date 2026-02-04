@@ -6,7 +6,7 @@
 #include "../../Animation/Animation.hpp"
 #include "../../StorageManager/Serializable.hpp"
 
-// default configuration (можно переопределить в проекте перед инклюдом)
+// default configuration (can be overridden in project before include)
 #ifndef STARS_DEFAULT_HUE
 #define STARS_DEFAULT_HUE 0
 #endif
@@ -34,31 +34,38 @@ public:
 	// render one frame
 	void render() override;
 
+	// activation hook to perform expensive preparation
+	void onActivate() override;
+
 	const char* getName() const override { return STARS_ANIMATION_NAME; }
 
 private:
 	struct Star {
 		uint8_t x;
 		uint8_t y;
-		uint8_t brightness;    // текущее значение яркости (0..255)
-		uint8_t target;        // целевая яркость
+		uint8_t brightness;    // current brightness value (0..255)
+		uint8_t target;        // target brightness
 		unsigned long nextChangeMillis;
-		// Параллакс: слой глубины и субпиксельная позиция/скорость по X
-		uint8_t depth;          // 0=далёкие (медленно), 1=средние, 2=ближние (быстро)
-		int16_t xfp;            // фикс-точка X (8.8), x = xfp>>8
-		int8_t vfp;             // скорость по X в фикс-точке (px*256/кадр)
-		// Плавное мерцание: фаза и скорость синусоидального мода
+		// Parallax: depth layer and sub-pixel X position/velocity
+		uint8_t depth;          // 0=far (slow), 1=mid, 2=near (fast)
+		int32_t xfp;            // fixed-point X (8.8), x = xfp >> 8
+		int8_t vfp;             // X velocity in fixed-point (px*256/frame)
+		// Smooth twinkle: phase and speed of sinusoidal modulation
 		uint8_t twPhase;        // 0..255
-		uint8_t twSpeed;        // маленькие значения для медленного мерцания
+		uint8_t twSpeed;        // small values for slow twinkle
 	};
 
 	std::vector<Star> stars;
 	int starCount;
-	// время последнего кадра для dt-зависимого движения
+	// timestamp of last frame for dt-dependent motion
 	uint32_t lastMillis = 0;
+    
+    // cached matrix size populated in onActivate()
+    int cachedWidth = 0;
+    int cachedHeight = 0;
 
 
-	// вспомогательные
+	// helpers
 	void randomizeStar(Star& s, int w, int h);
 };
 

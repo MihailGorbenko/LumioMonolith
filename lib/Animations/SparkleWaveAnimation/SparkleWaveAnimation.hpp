@@ -24,10 +24,17 @@ class SparkleWaveAnimation : public AnimationBase {
 public:
 	explicit SparkleWaveAnimation(uint16_t id, LedMatrix& m);
 	void render() override;
+
+	// activation hook: cache matrix size and prepare state
+	void onActivate() override;
 	const char* getName() const override { return SPARKLEWAVE_ANIMATION_NAME; }
 
 private:
 	uint8_t sparkleChance; // 0..255
+
+	// cached matrix size populated in onActivate()
+	int cachedWidth = 0;
+	int cachedHeight = 0;
 
 };
 
