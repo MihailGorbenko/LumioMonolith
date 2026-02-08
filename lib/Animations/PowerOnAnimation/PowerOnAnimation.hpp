@@ -7,7 +7,7 @@
 
 // default color for power-on plasma effect
 #ifndef POWERON_DEFAULT_HUE
-#define POWERON_DEFAULT_HUE 170
+#define POWERON_DEFAULT_HUE 160
 #endif
 #ifndef POWERON_DEFAULT_SAT
 #define POWERON_DEFAULT_SAT 255
