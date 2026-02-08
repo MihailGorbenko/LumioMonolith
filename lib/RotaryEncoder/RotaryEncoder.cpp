@@ -144,9 +144,9 @@ void RotaryEncoder::update() {
             if (_accum > 127) _accum = 127;  // ~31 full steps — safe limit.
             else if (_accum < -127) _accum = -127;
 
-            // Full-quadrature decoding (4x): treat 4 valid transitions as one full step.
-            // _accum accumulates +1/-1 per transition; only when ±4 is reached we count one "click".
-            int fullSteps = _accum / 4;
+            // Half-step decoding (2x): treat 2 valid transitions as one counted step.
+            // _accum accumulates +1/-1 per transition; when ±2 is reached we count one "click".
+            int fullSteps = _accum / 2;
             // Limit step burst to a maximum per update to avoid large jumps.
             if (fullSteps > (int)MAX_FULL_STEPS_PER_UPDATE) fullSteps = MAX_FULL_STEPS_PER_UPDATE;
             else if (fullSteps < -(int)MAX_FULL_STEPS_PER_UPDATE) fullSteps = -((int)MAX_FULL_STEPS_PER_UPDATE);
@@ -222,7 +222,7 @@ void RotaryEncoder::update() {
                         notify((fullSteps > 0) ? INCREMENT : DECREMENT, (int)_value);
                     }
 
-                    _accum -= fullSteps * 4; // Leave the remainder (-3..3) for 4x decoding.
+                    _accum -= fullSteps * 2; // Leave the remainder (-1..1) for 2x (half-step) decoding.
                     _lastStepMillis = now;
                     _lastReportedDir = dir;
                 }
