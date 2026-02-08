@@ -42,7 +42,6 @@ void PulseWaveAnimation::render() {
 
 	const int w = cachedWidth;
 	const int hgt = cachedHeight;
-	if (w <= 0 || hgt <= 0) return;
 
 	// Cosmic pulse expanding from center
 	uint32_t now = millis();

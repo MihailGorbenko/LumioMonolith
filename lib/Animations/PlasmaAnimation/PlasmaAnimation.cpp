@@ -38,7 +38,6 @@ void PlasmaAnimation::render() {
 
 	const int w = cachedWidth;
 	const int hgt = cachedHeight;
-	if (w <= 0 || hgt <= 0) return;
 
 	uint32_t t32 = millis() / 4U;
 	uint8_t t = (uint8_t)(t32 & 0xFF);

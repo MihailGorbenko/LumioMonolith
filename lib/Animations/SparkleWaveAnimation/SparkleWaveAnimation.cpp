@@ -19,12 +19,13 @@ void SparkleWaveAnimation::onActivate() {
 }
 
 void SparkleWaveAnimation::render() {
+	if (!isInitialized()) return;
 	LedMatrix& m = matrix;
 	m.clear();
 
 	// Use cached dimensions populated in onActivate(); assume prepared.
-	int w = cachedWidth;
-	int hgt = cachedHeight;
+	const int w = cachedWidth;
+	const int hgt = cachedHeight;
 
 	uint32_t now = millis();
 	uint32_t t32 = now / 5U;

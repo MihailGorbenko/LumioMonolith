@@ -34,6 +34,9 @@ private:
     std::vector<uint8_t> speeds; // per-column step speed (ticks between moves)
     int numCols; // number of columns (width)
     int numRows; // number of rows (height)
+    // cached matrix size populated in onActivate()
+    int cachedWidth = 0;
+    int cachedHeight = 0;
     uint32_t nextStepMs; // next step timestamp
     uint16_t stepPeriodMs; // step interval in ms
 };

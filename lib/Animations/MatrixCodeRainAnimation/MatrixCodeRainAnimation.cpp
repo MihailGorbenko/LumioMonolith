@@ -20,6 +20,8 @@ void MatrixCodeRainAnimation::onActivate() {
 
     numCols = w;
     numRows = h;
+    cachedWidth = w;
+    cachedHeight = h;
     heads.assign(numCols, 0);
     counter.assign(numCols, 0);
     speeds.assign(numCols, 0);
@@ -42,20 +44,16 @@ void MatrixCodeRainAnimation::onActivate() {
 void MatrixCodeRainAnimation::render() {
     if (!isInitialized()) return;
     LedMatrix& m = matrix;
-    int w = m.getWidth();
-    int h = m.getHeight();
-    if (w <= 0) w = 1;
-    if (h <= 0) h = 1;
-    // Reinitialize if size changed while active
-    if (numCols != w || numRows != h || heads.size() != (size_t)w) {
-        onActivate();
-    }
+    // Use cached dimensions populated in onActivate(); assume prepared.
+    const int w = cachedWidth;
+    const int h = cachedHeight;
+    if (w <= 0 || h <= 0) return;
 
     uint32_t now = millis();
     if ((int32_t)(now - nextStepMs) >= 0) {
         nextStepMs = now + stepPeriodMs;
         // move down along Y: each column steps with its own speed
-        for (int x = 0; x < numCols; ++x) {
+        for (int x = 0; x < w; ++x) {
             // very rare micro acceleration to add subtle life (~1%)
             if (random8(0, 255) < 3) {
                 counter[x]++;
@@ -65,7 +63,7 @@ void MatrixCodeRainAnimation::render() {
                 counter[x] = 0;
                 int head = heads[x] + 1;
                 bool wrapped = false;
-                if (head >= numRows) { head = 0; wrapped = true; }
+                if (head >= h) { head = 0; wrapped = true; }
                 heads[x] = head;
                 // Change speed only when wrapping to top to avoid mid-fall jumps
                 if (wrapped) {
@@ -77,13 +75,13 @@ void MatrixCodeRainAnimation::render() {
 
     m.clear();
     // vertical rain top->down: drops per column (single hue)
-    for (int x = 0; x < numCols; ++x) {
+    for (int x = 0; x < w; ++x) {
         // render only every second column visually to keep the original sparse look
         if ((x & 1) != 0) continue;
         int head = heads[x];
         // Don't allow tail to be longer than the physical column minus 2
         // so it cannot wrap and fill the column in one frame.
-        uint8_t maxTail = (numRows > 2) ? (uint8_t)(numRows - 2) : 1;
+        uint8_t maxTail = (h > 2) ? (uint8_t)(h - 2) : 1;
         uint8_t tlen = (x < (int)tailLens.size()) ? ((tailLens[x] < maxTail) ? tailLens[x] : maxTail) : 2;
         // Make visual tail one pixel shorter than configured
         if (tlen > 0) tlen = (uint8_t)(tlen - 1);

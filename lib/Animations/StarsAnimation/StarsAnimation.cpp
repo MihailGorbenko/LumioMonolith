@@ -76,17 +76,17 @@ void StarsAnimation::onActivate() {
 }
 
 void StarsAnimation::render() {
+	if (!isInitialized()) return;
+
 	LedMatrix& m = matrix;
 	uint32_t now = millis();
 	// clear matrix before drawing (controller sets render cadence)
 	m.clear();
 
 	// dimensions for wrapping and fixed-point math
-	// Use cached dimensions populated in onActivate(); assume prepared.
-	int w = cachedWidth;
-	int h = cachedHeight;
-	if (w <= 0) w = 8; // defensive clamp in case onActivate wasn't called
-	if (h <= 0) h = 8;
+	// cachedWidth/cachedHeight are initialized in onActivate()
+	const int w = cachedWidth;
+	const int h = cachedHeight;
 	int w8 = w << 8;
 
 	// stars vector is initialized in onActivate(); assume prepared here.

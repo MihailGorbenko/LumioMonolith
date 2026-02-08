@@ -7,12 +7,11 @@ SegmentRunnerAnimation::SegmentRunnerAnimation(uint16_t id, LedMatrix& m)
 
 
 void SegmentRunnerAnimation::render() {
+    if (!isInitialized()) return;
     LedMatrix& m = matrix;
-    // Use cached dimensions populated in onActivate(); fall back defensively.
-    int w = cachedWidth;
-    int h = cachedHeight;
-    if (w <= 0) w = 1;
-    if (h <= 0) h = 1;
+    // Use cached dimensions populated in onActivate(); assume prepared.
+    const int w = cachedWidth;
+    const int h = cachedHeight;
 
     // Ping-pong head across rows: top -> bottom -> top
     uint32_t step = millis() / (uint32_t)stepPeriodMs;

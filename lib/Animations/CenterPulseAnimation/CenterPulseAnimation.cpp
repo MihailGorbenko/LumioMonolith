@@ -35,7 +35,6 @@ void CenterPulseAnimation::render() {
 
     const int w = cachedWidth;
     const int h = cachedHeight;
-    if (w <= 0 || h <= 0) return;
 
     // Compute expanding radius 0..maxR using sin wave
     uint8_t phase = (uint8_t)(millis() / speedDiv);

@@ -47,7 +47,6 @@ void ReactorTurbinesAnimation::render() {
 
     const int w = cachedWidth;
     const int h = cachedHeight;
-    if (w <= 0 || h <= 0) return;
 
     m.clear();
 

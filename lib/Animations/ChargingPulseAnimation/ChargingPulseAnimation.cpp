@@ -48,7 +48,6 @@ void ChargingPulseAnimation::render() {
 
     const int w = cachedWidth;
     const int h = cachedHeight;
-    if (w <= 0 || h <= 0) return;
 
     const uint32_t now = millis();
     const int cycleMsSafe = (cachedCycleMs > 0) ? cachedCycleMs : 1;

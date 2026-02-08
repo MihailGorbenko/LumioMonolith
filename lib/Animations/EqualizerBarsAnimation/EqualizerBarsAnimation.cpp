@@ -19,7 +19,6 @@ void EqualizerBarsAnimation::render() {
     // querying matrix at render time. If sizes are invalid, bail out.
     const int w = cachedWidth;
     const int h = cachedHeight;
-    if (w <= 0 || h <= 0) return;
 
     uint32_t now = millis();
     if ((int32_t)(now - nextStepMs) >= 0) {
