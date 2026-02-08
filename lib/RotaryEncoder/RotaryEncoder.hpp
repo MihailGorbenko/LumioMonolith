@@ -19,6 +19,11 @@
 #define ROTARY_BTN_DEBOUNCE_MS 50
 #endif
 
+// Per-step debounce to suppress quick opposite-direction bounces (ms)
+#ifndef ROTARY_STEP_DEBOUNCE_MS
+#define ROTARY_STEP_DEBOUNCE_MS 8
+#endif
+
 // Default encoder boundaries (can be overridden before including this header).
 #ifndef ENC_MIN
 #define ENC_MIN -32768
@@ -95,6 +100,7 @@ private:
     unsigned long _accelFastMs;  // threshold for fast accel (ms)
     int _accelMedMult;           // medium multiplier
     int _accelFastMult;          // fast multiplier
+    int8_t _lastReportedDir;    // last reported step direction (1/-1), for debounce
 
     bool _accelEnabled;         // Enable/disable acceleration behavior.
 

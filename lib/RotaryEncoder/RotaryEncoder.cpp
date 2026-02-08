@@ -10,11 +10,12 @@ RotaryEncoder::RotaryEncoder()
       _listenerCount(0), _lastSwMillis(0),
       _swState(HIGH), _btnDown(false),
       // init new per-instance state
-      _lastState(0), _accum(0), _lastRawSw(HIGH),
+            _lastState(0), _accum(0), _lastRawSw(HIGH),
       // velocity/accel defaults
       _lastStepMillis(0), _vel(0.0f), _velFilterAlpha(0.3f),
       _accelMedMs(100), _accelFastMs(40), _accelMedMult(2), _accelFastMult(3),
       _accelEnabled(true) {
+        _lastReportedDir = 0;
     for (int i = 0; i < MAX_LISTENERS; ++i) _listeners[i] = nullptr;
 }
 
@@ -143,13 +144,14 @@ void RotaryEncoder::update() {
             if (_accum > 127) _accum = 127;  // ~31 full steps — safe limit.
             else if (_accum < -127) _accum = -127;
 
-            // Treat half-step encoders as one full step per click.
-            int fullSteps = _accum / 2;
+            // Full-quadrature decoding (4x): treat 4 valid transitions as one full step.
+            // _accum accumulates +1/-1 per transition; only when ±4 is reached we count one "click".
+            int fullSteps = _accum / 4;
             // Limit step burst to a maximum per update to avoid large jumps.
             if (fullSteps > (int)MAX_FULL_STEPS_PER_UPDATE) fullSteps = MAX_FULL_STEPS_PER_UPDATE;
             else if (fullSteps < -(int)MAX_FULL_STEPS_PER_UPDATE) fullSteps = -((int)MAX_FULL_STEPS_PER_UPDATE);
 
-            if (fullSteps != 0) {
+                if (fullSteps != 0) {
                 const int stepsAbs = abs(fullSteps);
 
                 // dt using millis() subtraction is wrap-safe (unsigned subtraction).
@@ -185,8 +187,21 @@ void RotaryEncoder::update() {
                 // Apply all full steps at once (preserve sign). Perform calculations in 32-bit.
                 int32_t deltaValue = (int32_t)fullSteps * (int32_t)_steps * (int32_t)mult;
                 int32_t newValue = (int32_t)_value + deltaValue;
-
-                if (_wrap) {
+                // Simple per-step debounce: if a step in the opposite direction
+                // occurs very soon after the last reported step, treat it as bounce
+                // and ignore it. This helps when there's no hardware pull-up and
+                // transitions jitter.
+                int dir = (fullSteps > 0) ? 1 : -1;
+                unsigned long sinceLast = (unsigned long)(now - _lastStepMillis);
+                bool skippedAsBounce = false;
+                if (_lastStepMillis != 0 && sinceLast < ROTARY_STEP_DEBOUNCE_MS && dir != _lastReportedDir) {
+                    // Ignore this opposite-direction burst as noise.
+                    _accum -= fullSteps * 4; // consume remainder for 4x decoding
+                    _lastState = cur;
+                    skippedAsBounce = true;
+                }
+                if (!skippedAsBounce) {
+                    if (_wrap) {
                     int32_t range = (int32_t)(_maxV) - (int32_t)(_minV) + 1;
                     if (range > 1) {  // Apply wrapping only when the range contains more than 1 value.
                         int32_t offset = ((int32_t)newValue - (int32_t)_minV) % range;
@@ -202,13 +217,15 @@ void RotaryEncoder::update() {
                     if (newValue < (int32_t)_minV) newValue = _minV;
                 }
 
-                _value = (int32_t)newValue;
-                if (_value != old) {
-                    notify((fullSteps > 0) ? INCREMENT : DECREMENT, (int)_value);
-                }
+                    _value = (int32_t)newValue;
+                    if (_value != old) {
+                        notify((fullSteps > 0) ? INCREMENT : DECREMENT, (int)_value);
+                    }
 
-                _accum -= fullSteps * 2; // Leave the remainder (-1..1).
-                _lastStepMillis = now;
+                    _accum -= fullSteps * 4; // Leave the remainder (-3..3) for 4x decoding.
+                    _lastStepMillis = now;
+                    _lastReportedDir = dir;
+                }
             }
         }
 
