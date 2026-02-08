@@ -7,7 +7,7 @@
 
 // default color (можно переопределить в проекте)
 #ifndef POWEROFF_DEFAULT_HUE
-#define POWEROFF_DEFAULT_HUE 170   // синий
+#define POWEROFF_DEFAULT_HUE 160   // синий
 #endif
 #ifndef POWEROFF_DEFAULT_SAT
 #define POWEROFF_DEFAULT_SAT 255
