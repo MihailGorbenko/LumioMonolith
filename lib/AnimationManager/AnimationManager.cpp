@@ -1,5 +1,6 @@
 ﻿#include "AnimationManager.hpp"
 #include "../StorageManager/StorageManager.hpp"
+#include "../../src/debug.hpp"
 
 void AnimationManager::addAnimation(AnimationBase* a) {
     if (!a) return;
